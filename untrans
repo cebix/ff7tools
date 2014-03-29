@@ -1,0 +1,427 @@
+#!/usr/bin/python
+
+#
+# UnTrans - Extract all translatable text of Final Fantasy VII to text files
+#
+# Copyright (C) 2014 Christian Bauer <www.cebix.net>
+#
+# Permission to use, copy, modify, and/or distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+
+__version__ = "1.0"
+
+import sys
+import os
+import struct
+import shutil
+import cdio
+import iso9660
+
+import ff7
+from ff7.field import Op
+
+
+# Save a list of unicode strings to a UTF-8 file in the text output directory.
+def saveTrans(transPath, subDir, fileName, lines):
+
+    # Create the output directory if necessary
+    outputDir = os.path.join(transPath, subDir)
+    if not os.path.isdir(outputDir):
+        os.mkdir(outputDir)
+
+    # Create the file
+    filePath = os.path.join(transPath, subDir, fileName)
+    f = open(filePath, "w")
+
+    # Write the lines, converted to UTF-8
+    f.writelines([l.encode("utf-8") + '\n' for l in lines])
+    f.close()
+
+
+# Extract strings from executable files.
+def extractFiles(discPath, transPath, version, execFileName):
+    print "Dumping executables..."
+
+    # Get the file list
+    if version == ff7.Version.DE:
+        files = ff7.data.execFileData_DE
+    elif version == ff7.Version.US:
+        files = ff7.data.execFileData_US
+    elif version == ff7.Version.JP:
+        files = ff7.data.execFileData_JP
+    else:
+        files = []
+
+    # Handle all files
+    for discDir, discFileName, offsetList in files:
+        if discFileName == "<EXEC>":
+            discFileName = execFileName
+
+        # Retrieve the file
+        discFile = ff7.retrieveFile(discPath, discDir, discFileName)
+        data = discFile.read()
+        discFile.close()
+
+        # Gzipped? Then decompress it
+        if data[8:11] == "\x1f\x8b\x08":
+
+            # Bytes 0..3 are the size of the uncompressed data
+            dataSize = struct.unpack_from("<L", data)[0]
+
+            data = ff7.decompressGzip(data[8:])
+            assert dataSize == len(data)
+
+        # Extract the strings
+        for offset, stringSize, numStrings, jpEnc, transDir, transFileName in offsetList:
+            lines = []
+
+            for i in xrange(numStrings):
+                string = ff7.decodeKernelText(data[offset:offset + stringSize], jpEnc)
+                lines.append(string)
+
+                offset += stringSize
+
+            # Save the translation file
+            saveTrans(transPath, transDir, transFileName, lines)
+
+
+# Extract strings from the snowboard minigame.
+def extractSnobo2(discPath, transPath, version):
+    print "Dumping snowboard minigame..."
+
+    # Get the string list
+    if version == ff7.Version.DE:
+        offsets = ff7.data.snobo2Data_DE
+    elif version == ff7.Version.US:
+        offsets = ff7.data.snobo2Data_US
+    elif version == ff7.Version.JP:
+        offsets = ff7.data.snobo2Data_JP
+    else:
+        offsets = []
+
+    if not offsets:
+        return
+
+    # Retrieve the minigame executable
+    discFile = ff7.retrieveFile(discPath, "MINI", "SNOBO2.BIN")
+    data = discFile.read()
+    discFile.close()
+
+    # Decompress it
+    dataSize = struct.unpack_from("<L", data)[0]
+    data = ff7.decompressGzip(data[8:])
+    assert dataSize == len(data)
+
+    # Extract the strings
+    lines = []
+    for offset, stringSize in offsets:
+        string = data[offset:offset + stringSize].rstrip('\0')
+        lines.append(string)
+
+    # Save the translation file
+    saveTrans(transPath, "snobo2", "snobo2.txt", lines)
+
+
+# Extract the kernel string lists.
+def extractKernel(discPath, transPath, version):
+    print "Dumping kernel strings..."
+
+    # Retrieve the kernel data file
+    kernelDataFile = ff7.retrieveFile(discPath, "INIT", "KERNEL.BIN")
+    kernelBin = ff7.kernel.Archive(kernelDataFile)
+
+    # Extract all string lists
+    for index, numStrings, compressed, transDir, transFileName in ff7.data.kernelStringData:
+        stringList = ff7.kernel.StringList(kernelBin.getFile(9, index).getData(), numStrings, version == ff7.Version.JP)
+        saveTrans(transPath, transDir, transFileName, stringList.getStrings())
+
+    # Extract the initial character names from the game init data
+    # (unused except for the names of Cloud and Sephiroth)
+    data = kernelBin.getFile(3, 0).getData()
+
+    lines = []
+    for offset in xrange(0x10, 0x431, 0x84):
+        lines.append(ff7.decodeKernelText(data[offset:offset + 12], version == ff7.Version.JP))
+
+    saveTrans(transPath, "kernel", "init_name.txt", lines)
+
+
+# Extract the world module string list.
+def extractWorld(discPath, transPath, version):
+    print "Dumping world maps..."
+
+    if version == ff7.Version.DE:
+        listBase = ff7.data.worldStringListOffset_DE
+    elif version == ff7.Version.US:
+        listBase = ff7.data.worldStringListOffset_US
+    elif version == ff7.Version.JP:
+        listBase = ff7.data.worldStringListOffset_JP
+    else:
+        return
+
+    # Retrieve the world module file and decompress it
+    inputFile = ff7.retrieveFile(discPath, "WORLD", "WORLD.BIN")
+    data = inputFile.read()
+    inputFile.close()
+
+    if data[8:11] != "\x1f\x8b\x08":
+        raise EnvironmentError, "WORLD/WORLD.BIN does not appear to be gzipped"
+
+    dataSize = struct.unpack("<L", data[0:4])[0]
+
+    data = ff7.decompressGzip(data[8:])
+    assert dataSize == len(data)
+
+    # Extract all strings
+    numStrings = struct.unpack("<H", data[listBase:listBase + 2])[0]
+    assert numStrings <= 64
+
+    maxStringSize = 512
+
+    lines = []
+    for i in xrange(numStrings):
+        lines.append(u"\u25b6 %d" % i)
+
+        offset = struct.unpack("<H", data[listBase + i*2 + 2:listBase + i*2 + 4])[0]
+        string = ff7.decodeFieldText(data[listBase + offset:listBase + offset + maxStringSize], version == ff7.Version.JP)
+        lines.append(string)
+
+    # Save to output file
+    saveTrans(transPath, "world", "world.txt", lines)
+
+
+# Extract the strings from the battle scenes.
+def extractScenes(discPath, transPath, version):
+    print "Dumping battle scenes..."
+
+    # Read the scene archive
+    archive = ff7.scene.Archive(ff7.retrieveFile(discPath, "BATTLE", "SCENE.BIN"))
+
+    # Process all scenes
+    for i in xrange(archive.numScenes()):
+        scene = archive.getScene(i)
+
+        # Extract and save the enemy names
+        enemies = scene.getEnemyNames(version == ff7.Version.JP)
+        saveTrans(transPath, "scene", "%03d_enemies.txt" % i, enemies)
+
+        # Extract and save the attack names
+        attacks = scene.getAbilityNames(version == ff7.Version.JP)
+        saveTrans(transPath, "scene", "%03d_abilities.txt" % i, attacks)
+
+        # Extract and save the message strings
+        strings = scene.getStrings(version == ff7.Version.JP)
+        if strings:
+            saveTrans(transPath, "scene", "%03d_messages.txt" % i, strings)
+
+
+# Extract the strings from the field map files.
+def extractFields(discPath, transPath, version):
+    print "Dumping field maps..."
+
+    # Process all maps
+    for map in ff7.data.fieldMaps:
+        if map == "FRCYO2" and (version in (ff7.Version.US, ff7.Version.JP)):
+            continue
+
+        print " ", map
+
+        # Get the event data
+        mapData = ff7.field.MapData(ff7.retrieveFile(discPath, "FIELD", map + ".DAT"))
+        event = mapData.getEventSection()
+
+        # Fetch the strings
+        strings = event.getStrings(version == ff7.Version.JP)
+
+        # Fetch the script code and the strings
+        code = event.scriptCode
+        baseAddress = event.scriptBaseAddress
+
+        # Construct the code flow graph, and extract the instructions which
+        # reference strings
+        actorEntries = set()
+        for addrs in event.actorScripts:
+            actorEntries |= set(addrs)
+
+        graph = ff7.field.buildCFG(code, baseAddress, actorEntries)
+
+        ff7.field.filterInstructions(graph, code, [Op.MES, Op.ASK, Op.MPNAM, Op.SPCNM])
+        ff7.field.reduce(graph, actorEntries)
+
+        # Determine where each string is used
+        stringUse = {id:set() for id in xrange(len(strings))}
+        analyzedAddrs = set()
+
+        for name, scripts in zip(event.actorNames, event.actorScripts):
+            for i in xrange(len(scripts)):
+                entryAddr = scripts[i]
+                if entryAddr in analyzedAddrs:
+                    continue
+
+                if i == 0:
+                    scriptName = name + " init"
+                elif i == 1:
+                    scriptName = name + " talk"
+                elif i == 2:
+                    scriptName = name + " push"
+                elif i == 32:
+                    scriptName = name + " default"
+                else:
+                    scriptName = name + " action %d" % i
+
+                analyzedAddrs.add(entryAddr)
+                paths = ff7.field.findPaths(graph, entryAddr)
+
+                for path in paths:
+                    for addr in path:
+                        block = graph[addr]
+
+                        for offset in block.instructions:
+                            op = code[offset]
+                            if op == Op.SPCAL:
+                                op = (op << 8) | code[offset + 1]
+
+                            use = None
+
+                            if op == Op.MES:
+                                stringId = code[offset + 2]
+                                use = scriptName
+                            elif op == Op.ASK:
+                                stringId = code[offset + 3]
+                                use = scriptName
+                            elif op == Op.MPNAM:
+                                stringId = code[offset + 1]
+                                use = "map name"
+                            elif op == Op.SPCNM:
+                                stringId = code[offset + 3]
+                                use = "debug character name"
+
+                            if use is not None:
+                                if stringId in stringUse:
+                                    stringUse[stringId].add(use)
+                                else:
+                                    print >>sys.stderr, "Warning: string %d in map %s used but not defined" % (stringId, map)
+
+        # Extract the strings, clearing unused ones
+        lines = []
+        for stringId in xrange(len(strings)):
+            string = strings[stringId]
+            header = u"\u25b6 %d" % stringId
+
+            use = stringUse[stringId]
+            if use:
+                header += " (%s)" % (", ".join(use))
+            else:
+                header += " (unused)"
+                string = ""
+
+            lines.append(header)
+            if string:
+                lines.append(string)
+
+        # Save to output file
+        saveTrans(transPath, "field", map.lower() + ".txt", lines)
+
+        # Look for tutorial data
+        i = 0
+        for extra in event.getExtras():
+
+            # Skip music data
+            if extra[0:4] != "AKAO":
+
+                # Extract the script
+                tutorial = ff7.tutorial.Script(extra)
+                script = tutorial.getScript(version == ff7.Version.JP)
+
+                # Save to output file
+                saveTrans(transPath, "tutorial", "%s-%d.txt" % (map.lower(), i), script)
+
+            i += 1
+
+
+# Print usage information and exit.
+def usage(exitcode, error = None):
+    print "Usage: %s [OPTION...] <game_dir_or_image> <trans_dir>" % os.path.basename(sys.argv[0])
+    print "  -V, --version                   Display version information and exit"
+    print "  -?, --help                      Show this help message"
+
+    if error is not None:
+        print >>sys.stderr, "\nError:", error
+
+    sys.exit(exitcode)
+
+
+# Parse command line arguments
+discPath = None
+transPath = None
+
+for arg in sys.argv[1:]:
+    if arg == "--version" or arg == "-V":
+        print "UnTrans", __version__
+        sys.exit(0)
+    elif arg == "--help" or arg == "-?":
+        usage(0)
+    elif arg[0] == "-":
+        usage(64, "Invalid option '%s'" % arg)
+    else:
+        if discPath is None:
+            discPath = arg
+        elif transPath is None:
+            transPath = arg
+        else:
+            usage(64, "Unexpected extra argument '%s'" % arg)
+
+if discPath is None:
+    usage(64, "No disc image or game data input directory specified")
+if transPath is None:
+    usage(64, "No translation output directory specified")
+
+try:
+
+    if os.path.isfile(discPath):
+        discPath = iso9660.ISO9660.FS(discPath, cdio.drivers["BIN/CUE"])
+    elif not os.path.isdir(discPath):
+        raise EnvironmentError, "'%s' is not a directory or disc image file" % discPath
+
+    # Check that this is a FF7 disc
+    version, discNumber, execFileName = ff7.checkDisc(discPath)
+
+    # Create the output directory
+    if os.path.isfile(transPath):
+        raise EnvironmentError, "Cannot create translation directory '%s': Path refers to a file" % transPath
+
+    if os.path.isdir(transPath):
+        answer = None
+        while answer not in ["y", "n"]:
+            answer = raw_input("Output directory '%s' exists. Delete and overwrite it (y/n)? " % transPath)
+
+        if answer == 'y':
+            shutil.rmtree(transPath)
+        else:
+            sys.exit(0)
+
+    print "Creating translation directory '%s'..." % transPath
+
+    try:
+        os.mkdir(transPath)
+    except OSError, e:
+        print >>sys.stderr, "Cannot create translation directory '%s': %s" % (transPath, e.strerror)
+        sys.exit(1)
+
+    # Extract everything
+    extractFiles(discPath, transPath, version, execFileName)
+    extractSnobo2(discPath, transPath, version)
+    extractKernel(discPath, transPath, version)
+    extractWorld(discPath, transPath, version)
+    extractScenes(discPath, transPath, version)
+    extractFields(discPath, transPath, version)
+
+    print "Done."
+
+except Exception, e:
+
+    # Pokemon exception handler
+    print >>sys.stderr, unicode(e.message).encode("utf-8")
+    sys.exit(1)

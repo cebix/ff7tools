@@ -1,0 +1,914 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+#
+# SubEnding - Replace the subtitles in the Final Fantasy VII ending movie
+#
+# Copyright (C) 2014 Christian Bauer <www.cebix.net>
+#
+# Permission to use, copy, modify, and/or distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+
+from __future__ import division  # quantization requires round-to-zero integer division
+
+__version__ = "1.0"
+
+import os
+import sys
+import struct
+import numpy
+
+from PIL import Image
+from PIL import ImageDraw
+from PIL import ImageFont
+from PIL import ImageFilter
+
+
+# Subtitle font path
+fontFileName = "/usr/share/fonts/liberation/LiberationSans-Bold.ttf"
+
+# Subtitle font size
+fontSize = 30
+
+# Radius of the Gaussian blur filter applied to subtitles
+blurRadius = 1.5
+
+# Subtitle text indexed by start frame, empty strings blank the text
+# (German translation as an example)
+subTiming = {
+          # Cloud
+     606: u"…Der Lifestream?",
+     676: u"",
+    1215: u"…Ich denke, ich verstehe jetzt.",
+    1245: u"",
+
+          # Tifa
+    1255: u"Hm?",
+    1275: u"",
+
+          # Cloud
+    1297: u"Die Antwort des Planeten…",
+    1348: u"Das verheißene Land…",
+    1385: u"",
+    1402: u"Ich glaube…",
+    1432: u"dort können wir sie finden.",
+    1462: u"",
+
+          # Tifa
+    1492: u"Ja, gehen wir zu ihr.",
+    1533: u"",
+
+          # Cloud
+    1786: u"Wo sind denn die anderen?",
+    1822: u"",
+
+          # Barrett
+    1856: u"Eeeey!",
+    1885: u"",
+
+          # Tifa
+    1895: u"Alle sind OK! Was ein Glück!",
+    1956: u"",
+
+          # Barrett to Tifa/Cloud
+    1966: u"Ihr habt's wohl auch gepackt.",
+
+          # Barrett to Cid
+    2026: u"Aber… Wie komm'wer hier raus?",
+    2106: u"",
+
+          # Red XIII
+    2115: u"Holy wird bald aktiv.",
+    2160: u"Und dann wird hier alles–",
+    2196: u"",
+
+          # Cid
+    2206: u"Auwacka!",
+    2226: u"Wo is meene Jlücksfee hin…?",
+    2275: u"",
+    3031: u"Kacke!",
+    3068: u"",
+
+          # Malin
+    3555: u"Das Blumenmädchen?",
+    3586: u"",
+
+          # Barrett
+    5156: u"Ey!",
+    5195: u"Was wird jetzt aus Midgar?",
+    5239: u"",
+
+          # Barrett to Cait Sith
+    5249: u"Sieht echt übel aus, oder?",
+    5289: u"",
+
+          # Cait Sith
+    5299: u"Ich hab' die Bewohner fei alle",
+    5330: u"in die Slums evakuieren lassen.",
+    5360: u"",
+    5373: u"Aber so wie's ausschaut…",
+    5428: u"",
+
+          # Red XIII
+    5450: u"Holy kam also zu spät.",
+    5510: u"",
+    5512: u"Der Meteor ist bereits zu nah.",
+    5572: u"",
+    5575: u"Wir haben auf Holy gehofft,",
+    5606: u"und nun bewirkt es das Gegenteil.",
+    5636: u"",
+    5644: u"Es geht nicht um Midgar,",
+    5669: u"sondern um unseren Planeten…",
+    5714: u"",
+
+          # Tifa
+    5906: u"Nanu?!",
+    5921: u"",
+
+          # (possibly Barrett)
+    6321: u"Was is'n DAS…?",
+    6391: u"",
+
+          # Cloud
+    6401: u"…Der Lifestream.",
+    6445: u"",
+
+          # Malin
+    6715: u"Er kommt.",
+    6751: u"",
+}
+
+
+# Print usage information and exit.
+def usage(exitcode, error = None):
+    print "Usage: %s [OPTION...] <fromfile.MOV> <tofile.MOV>" % os.path.basename(sys.argv[0])
+    print "  -f, --fast                      Keep original subtitles unless overridden"
+    print "  -V, --version                   Display version information and exit"
+    print "  -?, --help                      Show this help message"
+
+    if error is not None:
+        print >>sys.stderr, "\nError:", error
+
+    sys.exit(exitcode)
+
+
+# Width and height of subtitles
+subWidth = 640
+subHeight = 32
+
+# Y position of subtitles
+subY = 160
+
+# Audio interleave factor
+audioMuxRate = 7
+
+# Size of mode 2 sector (subheader, data, EDC)
+sectorSize = 2336
+
+# Size of form 1 data
+form1DataSize = 2048
+
+# Size of XA subheader
+subheaderSize = 8
+
+# Size of EDC/ECC data in form 1 sector
+edcSize = sectorSize - subheaderSize - form1DataSize
+
+# Size of frame chunk header
+chunkHeaderSize = 32
+
+# Size of frame chunk data
+chunkDataSize = form1DataSize - chunkHeaderSize
+
+# Size of camera data in frame
+camDataSize = 40
+
+# Size of frame header
+frameHeaderSize = 8
+
+
+# DCT transformation matrix and its inverse
+dctMatrix = numpy.array([
+    [23170,  23170,  23170,  23170,  23170,  23170,  23170,  23170],
+    [32138,  27245,  18204,   6392,  -6393, -18205, -27246, -32139],
+    [30273,  12539, -12540, -30274, -30274, -12540,  12539,  30273],
+    [27245,  -6393, -32139, -18205,  18204,  32138,   6392, -27246],
+    [23170, -23171, -23171,  23170,  23170, -23171, -23171,  23170],
+    [18204, -32139,   6392,  27245, -27246,  -6393,  32138, -18205],
+    [12539, -30274,  30273, -12540, -12540,  30273, -30274,  12539],
+    [ 6392, -18205,  27245, -32139,  32138, -27246,  18204,  -6393],
+])
+
+dctMatrixT = numpy.transpose(dctMatrix)
+
+# Quantization matrix
+qMatrix = numpy.array([
+    [ 2, 16, 19, 22, 26, 27, 29, 34],
+    [16, 16, 22, 24, 27, 29, 34, 37],
+    [19, 22, 26, 27, 29, 34, 34, 38],
+    [22, 22, 26, 27, 29, 34, 37, 40],
+    [22, 26, 27, 29, 32, 35, 40, 48],
+    [26, 27, 29, 32, 35, 40, 48, 58],
+    [26, 27, 29, 34, 38, 46, 56, 69],
+    [27, 29, 35, 38, 46, 56, 69, 83],
+])
+
+# (x, y)-pairs for scanning an 8x8 matrix in zig-zag order
+zigzag = [        (0, 1), (1, 0), (2, 0), (1, 1), (0, 2), (0, 3), (1, 2),
+          (2, 1), (3, 0), (4, 0), (3, 1), (2, 2), (1, 3), (0, 4), (0, 5),
+          (1, 4), (2, 3), (3, 2), (4, 1), (5, 0), (6, 0), (5, 1), (4, 2),
+          (3, 3), (2, 4), (1, 5), (0, 6), (0, 7), (1, 6), (2, 5), (3, 4),
+          (4, 3), (5, 2), (6, 1), (7, 0), (7, 1), (6, 2), (5, 3), (4, 4),
+          (3, 5), (2, 6), (1, 7), (2, 7), (3, 6), (4, 5), (5, 4), (6, 3),
+          (7, 2), (7, 3), (6, 4), (5, 5), (4, 6), (3, 7), (4, 7), (5, 6),
+          (6, 5), (7, 4), (7, 5), (6, 6), (5, 7), (6, 7), (7, 6), (7, 7)]
+
+# VLC code table (zero-run length, AC coefficient) -> (number of bits, code)
+vlcCodes = {
+    ( 0,   1): ( 3, 0b110),
+    ( 0,  -1): ( 3, 0b111),
+    ( 1,   1): ( 4, 0b0110),
+    ( 1,  -1): ( 4, 0b0111),
+    ( 0,   2): ( 5, 0b01000),
+    ( 0,  -2): ( 5, 0b01001),
+    ( 2,   1): ( 5, 0b01010),
+    ( 2,  -1): ( 5, 0b01011),
+    ( 0,   3): ( 6, 0b001010),
+    ( 0,  -3): ( 6, 0b001011),
+    ( 4,   1): ( 6, 0b001100),
+    ( 4,  -1): ( 6, 0b001101),
+    ( 3,   1): ( 6, 0b001110),
+    ( 3,  -1): ( 6, 0b001111),
+    ( 7,   1): ( 7, 0b0001000),
+    ( 7,  -1): ( 7, 0b0001001),
+    ( 6,   1): ( 7, 0b0001010),
+    ( 6,  -1): ( 7, 0b0001011),
+    ( 1,   2): ( 7, 0b0001100),
+    ( 1,  -2): ( 7, 0b0001101),
+    ( 5,   1): ( 7, 0b0001110),
+    ( 5,  -1): ( 7, 0b0001111),
+    ( 2,   2): ( 8, 0b00001000),
+    ( 2,  -2): ( 8, 0b00001001),
+    ( 9,   1): ( 8, 0b00001010),
+    ( 9,  -1): ( 8, 0b00001011),
+    ( 0,   4): ( 8, 0b00001100),
+    ( 0,  -4): ( 8, 0b00001101),
+    ( 8,   1): ( 8, 0b00001110),
+    ( 8,  -1): ( 8, 0b00001111),
+    (13,   1): ( 9, 0b001000000),
+    (13,  -1): ( 9, 0b001000001),
+    ( 0,   6): ( 9, 0b001000010),
+    ( 0,  -6): ( 9, 0b001000011),
+    (12,   1): ( 9, 0b001000100),
+    (12,  -1): ( 9, 0b001000101),
+    (11,   1): ( 9, 0b001000110),
+    (11,  -1): ( 9, 0b001000111),
+    ( 3,   2): ( 9, 0b001001000),
+    ( 3,  -2): ( 9, 0b001001001),
+    ( 1,   3): ( 9, 0b001001010),
+    ( 1,  -3): ( 9, 0b001001011),
+    ( 0,   5): ( 9, 0b001001100),
+    ( 0,  -5): ( 9, 0b001001101),
+    (10,   1): ( 9, 0b001001110),
+    (10,  -1): ( 9, 0b001001111),
+    (16,   1): (11, 0b00000010000),
+    (16,  -1): (11, 0b00000010001),
+    ( 5,   2): (11, 0b00000010010),
+    ( 5,  -2): (11, 0b00000010011),
+    ( 0,   7): (11, 0b00000010100),
+    ( 0,  -7): (11, 0b00000010101),
+    ( 2,   3): (11, 0b00000010110),
+    ( 2,  -3): (11, 0b00000010111),
+    ( 1,   4): (11, 0b00000011000),
+    ( 1,  -4): (11, 0b00000011001),
+    (15,   1): (11, 0b00000011010),
+    (15,  -1): (11, 0b00000011011),
+    (14,   1): (11, 0b00000011100),
+    (14,  -1): (11, 0b00000011101),
+    ( 4,   2): (11, 0b00000011110),
+    ( 4,  -2): (11, 0b00000011111),
+    ( 0,  11): (13, 0b0000000100000),
+    ( 0, -11): (13, 0b0000000100001),
+    ( 8,   2): (13, 0b0000000100010),
+    ( 8,  -2): (13, 0b0000000100011),
+    ( 4,   3): (13, 0b0000000100100),
+    ( 4,  -3): (13, 0b0000000100101),
+    ( 0,  10): (13, 0b0000000100110),
+    ( 0, -10): (13, 0b0000000100111),
+    ( 2,   4): (13, 0b0000000101000),
+    ( 2,  -4): (13, 0b0000000101001),
+    ( 7,   2): (13, 0b0000000101010),
+    ( 7,  -2): (13, 0b0000000101011),
+    (21,   1): (13, 0b0000000101100),
+    (21,  -1): (13, 0b0000000101101),
+    (20,   1): (13, 0b0000000101110),
+    (20,  -1): (13, 0b0000000101111),
+    ( 0,   9): (13, 0b0000000110000),
+    ( 0,  -9): (13, 0b0000000110001),
+    (19,   1): (13, 0b0000000110010),
+    (19,  -1): (13, 0b0000000110011),
+    (18,   1): (13, 0b0000000110100),
+    (18,  -1): (13, 0b0000000110101),
+    ( 1,   5): (13, 0b0000000110110),
+    ( 1,  -5): (13, 0b0000000110111),
+    ( 3,   3): (13, 0b0000000111000),
+    ( 3,  -3): (13, 0b0000000111001),
+    ( 0,   8): (13, 0b0000000111010),
+    ( 0,  -8): (13, 0b0000000111011),
+    ( 6,   2): (13, 0b0000000111100),
+    ( 6,  -2): (13, 0b0000000111101),
+    (17,   1): (13, 0b0000000111110),
+    (17,  -1): (13, 0b0000000111111),
+    (10,   2): (14, 0b00000000100000),
+    (10,  -2): (14, 0b00000000100001),
+    ( 9,   2): (14, 0b00000000100010),
+    ( 9,  -2): (14, 0b00000000100011),
+    ( 5,   3): (14, 0b00000000100100),
+    ( 5,  -3): (14, 0b00000000100101),
+    ( 3,   4): (14, 0b00000000100110),
+    ( 3,  -4): (14, 0b00000000100111),
+    ( 2,   5): (14, 0b00000000101000),
+    ( 2,  -5): (14, 0b00000000101001),
+    ( 1,   7): (14, 0b00000000101010),
+    ( 1,  -7): (14, 0b00000000101011),
+    ( 1,   6): (14, 0b00000000101100),
+    ( 1,  -6): (14, 0b00000000101101),
+    ( 0,  15): (14, 0b00000000101110),
+    ( 0, -15): (14, 0b00000000101111),
+    ( 0,  14): (14, 0b00000000110000),
+    ( 0, -14): (14, 0b00000000110001),
+    ( 0,  13): (14, 0b00000000110010),
+    ( 0, -13): (14, 0b00000000110011),
+    ( 0,  12): (14, 0b00000000110100),
+    ( 0, -12): (14, 0b00000000110101),
+    (26,   1): (14, 0b00000000110110),
+    (26,  -1): (14, 0b00000000110111),
+    (25,   1): (14, 0b00000000111000),
+    (25,  -1): (14, 0b00000000111001),
+    (24,   1): (14, 0b00000000111010),
+    (24,  -1): (14, 0b00000000111011),
+    (23,   1): (14, 0b00000000111100),
+    (23,  -1): (14, 0b00000000111101),
+    (22,   1): (14, 0b00000000111110),
+    (22,  -1): (14, 0b00000000111111),
+    ( 0,  31): (15, 0b000000000100000),
+    ( 0, -31): (15, 0b000000000100001),
+    ( 0,  30): (15, 0b000000000100010),
+    ( 0, -30): (15, 0b000000000100011),
+    ( 0,  29): (15, 0b000000000100100),
+    ( 0, -29): (15, 0b000000000100101),
+    ( 0,  28): (15, 0b000000000100110),
+    ( 0, -28): (15, 0b000000000100111),
+    ( 0,  27): (15, 0b000000000101000),
+    ( 0, -27): (15, 0b000000000101001),
+    ( 0,  26): (15, 0b000000000101010),
+    ( 0, -26): (15, 0b000000000101011),
+    ( 0,  25): (15, 0b000000000101100),
+    ( 0, -25): (15, 0b000000000101101),
+    ( 0,  24): (15, 0b000000000101110),
+    ( 0, -24): (15, 0b000000000101111),
+    ( 0,  23): (15, 0b000000000110000),
+    ( 0, -23): (15, 0b000000000110001),
+    ( 0,  22): (15, 0b000000000110010),
+    ( 0, -22): (15, 0b000000000110011),
+    ( 0,  21): (15, 0b000000000110100),
+    ( 0, -21): (15, 0b000000000110101),
+    ( 0,  20): (15, 0b000000000110110),
+    ( 0, -20): (15, 0b000000000110111),
+    ( 0,  19): (15, 0b000000000111000),
+    ( 0, -19): (15, 0b000000000111001),
+    ( 0,  18): (15, 0b000000000111010),
+    ( 0, -18): (15, 0b000000000111011),
+    ( 0,  17): (15, 0b000000000111100),
+    ( 0, -17): (15, 0b000000000111101),
+    ( 0,  16): (15, 0b000000000111110),
+    ( 0, -16): (15, 0b000000000111111),
+    ( 0,  40): (16, 0b0000000000100000),
+    ( 0, -40): (16, 0b0000000000100001),
+    ( 0,  39): (16, 0b0000000000100010),
+    ( 0, -39): (16, 0b0000000000100011),
+    ( 0,  38): (16, 0b0000000000100100),
+    ( 0, -38): (16, 0b0000000000100101),
+    ( 0,  37): (16, 0b0000000000100110),
+    ( 0, -37): (16, 0b0000000000100111),
+    ( 0,  36): (16, 0b0000000000101000),
+    ( 0, -36): (16, 0b0000000000101001),
+    ( 0,  35): (16, 0b0000000000101010),
+    ( 0, -35): (16, 0b0000000000101011),
+    ( 0,  34): (16, 0b0000000000101100),
+    ( 0, -34): (16, 0b0000000000101101),
+    ( 0,  33): (16, 0b0000000000101110),
+    ( 0, -33): (16, 0b0000000000101111),
+    ( 0,  32): (16, 0b0000000000110000),
+    ( 0, -32): (16, 0b0000000000110001),
+    ( 1,  14): (16, 0b0000000000110010),
+    ( 1, -14): (16, 0b0000000000110011),
+    ( 1,  13): (16, 0b0000000000110100),
+    ( 1, -13): (16, 0b0000000000110101),
+    ( 1,  12): (16, 0b0000000000110110),
+    ( 1, -12): (16, 0b0000000000110111),
+    ( 1,  11): (16, 0b0000000000111000),
+    ( 1, -11): (16, 0b0000000000111001),
+    ( 1,  10): (16, 0b0000000000111010),
+    ( 1, -10): (16, 0b0000000000111011),
+    ( 1,   9): (16, 0b0000000000111100),
+    ( 1,  -9): (16, 0b0000000000111101),
+    ( 1,   8): (16, 0b0000000000111110),
+    ( 1,  -8): (16, 0b0000000000111111),
+    ( 1,  18): (17, 0b00000000000100000),
+    ( 1, -18): (17, 0b00000000000100001),
+    ( 1,  17): (17, 0b00000000000100010),
+    ( 1, -17): (17, 0b00000000000100011),
+    ( 1,  16): (17, 0b00000000000100100),
+    ( 1, -16): (17, 0b00000000000100101),
+    ( 1,  15): (17, 0b00000000000100110),
+    ( 1, -15): (17, 0b00000000000100111),
+    ( 6,   3): (17, 0b00000000000101000),
+    ( 6,  -3): (17, 0b00000000000101001),
+    (16,   2): (17, 0b00000000000101010),
+    (16,  -2): (17, 0b00000000000101011),
+    (15,   2): (17, 0b00000000000101100),
+    (15,  -2): (17, 0b00000000000101101),
+    (14,   2): (17, 0b00000000000101110),
+    (14,  -2): (17, 0b00000000000101111),
+    (13,   2): (17, 0b00000000000110000),
+    (13,  -2): (17, 0b00000000000110001),
+    (12,   2): (17, 0b00000000000110010),
+    (12,  -2): (17, 0b00000000000110011),
+    (11,   2): (17, 0b00000000000110100),
+    (11,  -2): (17, 0b00000000000110101),
+    (31,   1): (17, 0b00000000000110110),
+    (31,  -1): (17, 0b00000000000110111),
+    (30,   1): (17, 0b00000000000111000),
+    (30,  -1): (17, 0b00000000000111001),
+    (29,   1): (17, 0b00000000000111010),
+    (29,  -1): (17, 0b00000000000111011),
+    (28,   1): (17, 0b00000000000111100),
+    (28,  -1): (17, 0b00000000000111101),
+    (27,   1): (17, 0b00000000000111110),
+    (27,  -1): (17, 0b00000000000111111),
+}
+
+
+# Subtitle generator
+class Subtitler:
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        self.font = ImageFont.truetype(fontFileName, fontSize)
+        self.lumaData = None
+        self.setText("")
+
+    def setText(self, text):
+        self.text = text
+
+        # Create image
+        im = Image.new("L", (self.width, self.height * 2))  # FF7 ending movie has 2:1 aspect ratio
+        draw = ImageDraw.Draw(im)
+
+        # Draw centered text
+        size = draw.textsize(text, self.font)
+        x = (self.width - size[0]) // 2
+        y = (self.height - fontSize) // 2 + 1
+
+        if x < 0:
+            print >>sys.stderr, "Warning: string '%s' too wide" % text
+
+        draw.text((x, y), text, 255, self.font)
+
+        # Blur and scale to requested size
+        im = im.filter(ImageFilter.GaussianBlur(blurRadius))
+        im = im.resize((self.width, self.height), Image.ANTIALIAS)
+
+        # Retrieve luminance data and level-shift it
+        self.lumaData = numpy.array(im.getdata()).reshape((self.height, self.width)) - 128
+
+    # Return the 8x8 luminance data block at the specified coordinates as an
+    # 8x8 numpy array of values in the range [-128; 127].
+    def getBlock(self, x, y):
+        return self.lumaData[y:y+8, x:x+8]
+
+
+# Bitstream reader
+class ReadBitStream:
+
+    # Create bitstream reader from bytearray.
+    def __init__(self, data):
+        self.data = data
+        self.seek(0)
+
+    # Seek to a byte offset.
+    def seek(self, offset):
+        self.offset = offset
+        self.buffer = 0
+        self.bufferedBits = 0
+
+    # Read the next 'bits' bits from the stream as an unsigned integer
+    # without advancing the current position.
+    def peek(self, bits):
+        while bits > self.bufferedBits:
+            self.buffer = (self.buffer << 8) | self.data[self.offset ^ 1]  # ^1 because data is stored in 16-bit little endian units
+            self.bufferedBits += 8
+            self.offset += 1
+
+        return self.buffer >> (self.bufferedBits - bits)
+
+    # Read the next 'bits' bits from the stream as an unsigned integer.
+    def read(self, bits):
+        x = self.peek(bits)
+        self.buffer &= (1 << (self.bufferedBits - bits)) - 1
+        self.bufferedBits -= bits
+        return x
+
+
+# Bitstream writer
+class WriteBitStream:
+
+    # Create bitstream writer for bytearray.
+    def __init__(self, data):
+        self.data = data
+        self.seek(0)
+
+    # Seek to a byte offset.
+    def seek(self, offset):
+        self.offset = offset
+        self.buffer = 0
+        self.bufferedBits = 0
+
+    # Write an unsigned integer with a specified number of bits to the
+    # stream.
+    def write(self, value, bits):
+        self.buffer = (self.buffer << bits) | value
+        self.bufferedBits += bits
+
+        try:
+            while self.bufferedBits >= 16:
+                self.data[self.offset] = (self.buffer >> (self.bufferedBits - 16)) & 0xff
+                self.data[self.offset + 1] = (self.buffer >> (self.bufferedBits - 8)) & 0xff
+                self.bufferedBits -= 16
+                self.offset += 2
+        except IndexError:
+            raise RuntimeError, "Frame data overrun"
+
+    # Flush any outstanding bits.
+    def flush(self):
+        if self.bufferedBits:  # pad with 0 bits
+            self.write(0, 16 - self.bufferedBits)
+            assert(self.bufferedBits == 0)
+
+
+# Clamp and convert DCT coefficient to 10-bit two's complement representation.
+def clamp(v):
+    if v > 511:
+        v = 511
+    elif v < -512:
+        v = -512
+
+    if v < 0:
+        return v + 1024
+    else:
+        return v
+
+
+# Transform and encode an 8x8 block to the given output bitstream,
+# returning the number of codes needed.
+def encodeMacroblock(block, frameQ, outStream):
+    numCodes = 0
+
+    # Perform DCT
+    r = numpy.dot(numpy.dot(dctMatrix, block), dctMatrixT)
+
+    # Scale and quantize
+    for y in xrange(8):
+        for x in xrange(8):
+            if x or y:
+
+                # AC coefficient
+                q = 65536 * 8192 * qMatrix[x, y] * frameQ
+
+            else:
+
+                # DC coefficient
+                q = 65536 * 65536 * qMatrix[x, y]
+
+            r[x, y] = r[x, y] / q
+
+    # Write DC coefficient to stream
+    outStream.write(clamp(r[0, 0]), 10)
+    numCodes += 1
+
+    # Encode and write AC coefficients to stream
+    run = 0
+    for x, y in zigzag:
+        v = r[x, y]
+        if v:
+            try:
+                # Zero-run finished, encode and write run length and coefficient
+                bits, code = vlcCodes[(run, v)]
+                outStream.write(code, bits)
+                numCodes += 1
+
+            except KeyError:
+
+                # Code not in VLC tree, write escape sequence
+                outStream.write(0b000001, 6)
+                outStream.write(run, 6)
+                outStream.write(clamp(v), 10)
+                numCodes += 1
+
+            run = 0
+
+        else:
+
+            # Zero-run continues
+            run += 1
+
+    # Write end-of-block code
+    outStream.write(0b10, 2)
+    numCodes += 1
+
+    return numCodes
+
+
+# Process one video frame: copy the macroblocks above subY and replace the
+# macroblocks below with the new subtitles. Returns a tuple consisting of
+# the new frame data (same size as the input data) and the number of bytes
+# actually used in the new data.
+def processFrame(inFrame, width, height, subtitler):
+
+    # Decode frame header
+    mdecCmd, frameQ, frameVersion = struct.unpack_from("<LHH", inFrame, camDataSize)
+
+    # Prepare new frame data
+    outFrame = bytearray(len(inFrame))
+    outFrame[:camDataSize] = inFrame[:camDataSize]  # copy camera data
+
+    # Create input and output bitstreams
+    inStream = ReadBitStream(inFrame)
+    outStream = WriteBitStream(outFrame)
+
+    inStream.seek(camDataSize + frameHeaderSize)  # skip camera data
+    outStream.seek(camDataSize + frameHeaderSize)
+
+    # Process all macroblocks of frame
+    numCodes = 0
+
+    for xBlock in xrange(width // 16):
+        for yBlock in xrange(height // 16):
+            isSubtitleBlock = (yBlock * 16 >= subY)
+
+            # Copy or skip 6 DCT blocks (Cr, Cb, 4*Y) of the input stream
+            for blockNum in xrange(6):
+
+                # DC coefficient
+                dc = inStream.read(10)
+                if not isSubtitleBlock:
+                    outStream.write(dc, 10)
+                    numCodes += 1
+
+                endOfBlock = False
+
+                # Copy or skip VLC-compressed AC coefficients
+                while not endOfBlock:
+                    bits = None
+                    code = inStream.peek(11)
+                    if   code & 0b11000000000 == 0b10000000000:  # end of block
+                        endOfBlock = True
+                        bits = 2
+                    elif code & 0b11000000000 == 0b11000000000:
+                        bits = 3
+                    elif code & 0b11100000000 == 0b01100000000:
+                        bits = 4
+                    elif code & 0b11100000000 == 0b01000000000:
+                        bits = 5
+                    elif code & 0b11110000000 == 0b00110000000:
+                        bits = 6
+                    elif code & 0b11111000000 == 0b00100000000:
+                        bits = 9
+                    elif code & 0b11111000000 == 0b00101000000:
+                        bits = 6
+                    elif code & 0b11110000000 == 0b00010000000:
+                        bits = 7
+                    elif code & 0b11111000000 == 0b00001000000:
+                        bits = 8
+                    elif code & 0b11111100000 == 0b00000100000:  # escape code
+                        bits = 22
+                    elif code & 0b11111110000 == 0b00000010000:
+                        bits = 11
+                    elif code & 0b11111111000 == 0b00000001000:
+                        bits = 13
+                    elif code & 0b11111111100 == 0b00000000100:
+                        bits = 14
+                    elif code & 0b11111111110 == 0b00000000010:
+                        bits = 15
+                    elif code                 == 0b00000000001:
+                        bits = 16
+                    elif code                 == 0b00000000000:
+                        bits = 17
+                    else:
+                        assert(False)
+
+                    code = inStream.read(bits)
+                    if not isSubtitleBlock:
+                        outStream.write(code, bits)
+                        numCodes += 1
+
+            # Encode a subtitle macroblock
+            if isSubtitleBlock:
+
+                # Write empty Cr, Cb blocks
+                for blockNum in xrange(2):
+                    outStream.write(0, 10)    # DC coefficient = 0
+                    outStream.write(0b10, 2)  # end of block
+                    numCodes += 2
+
+                # Write four Y blocks with the subtitle image data
+                x = xBlock * 16
+                y = yBlock * 16 - subY
+
+                numCodes += encodeMacroblock(subtitler.getBlock(x    , y    ), frameQ, outStream)
+                numCodes += encodeMacroblock(subtitler.getBlock(x + 8, y    ), frameQ, outStream)
+                numCodes += encodeMacroblock(subtitler.getBlock(x    , y + 8), frameQ, outStream)
+                numCodes += encodeMacroblock(subtitler.getBlock(x + 8, y + 8), frameQ, outStream)
+
+    # Copy frame end marker (01111111110) and finish frame
+    outStream.write(inStream.read(11), 11)
+    outStream.flush()
+
+    outFrameSize = (outStream.offset + 3) & ~3  # round up to 32-bit boundary
+
+    # Number of MDEC words for DMA, rounded up to a DMA block size of 32 words
+    mdecWords = ((numCodes + 63) // 2) & ~31
+
+    # Write new frame header
+    struct.pack_into("<LHH", outFrame, camDataSize, (mdecCmd & 0xffff0000) | mdecWords, frameQ, frameVersion)
+
+    return outFrame, outFrameSize
+
+
+# Parse command line arguments
+inputFileName = None
+outputFileName = None
+fastMode = False
+
+for arg in sys.argv[1:]:
+    if arg == "--version" or arg == "-V":
+        print "SubEnding", __version__
+        sys.exit(0)
+    elif arg == "--help" or arg == "-?":
+        usage(0)
+    elif arg == "--fast" or arg == "-f":
+        fastMode = True
+    elif arg[0] == "-":
+        usage(64, "Invalid option '%s'" % arg)
+    else:
+        if inputFileName is None:
+            inputFileName = arg
+        elif outputFileName is None:
+            outputFileName = arg
+        else:
+            usage(64, "Unexpected extra argument '%s'" % arg)
+
+if inputFileName is None:
+    usage(64, "No input file specified")
+if outputFileName is None:
+    usage(64, "No output file specified")
+
+# Do a preflight of the subtitles, to check for text length
+subtitler = Subtitler(subWidth, subHeight)
+for n, text in subTiming.iteritems():
+    subtitler.setText(text)
+
+subtitler.setText("")
+
+# Open the input file
+try:
+    inputFile = open(inputFileName, "rb")
+except IOError, e:
+    print >>sys.stderr, "Error opening file '%s': %s" % (inputFileName, e.strerror)
+    sys.exit(1)
+
+# Create the output file
+try:
+    outputFile = open(outputFileName, "wb")
+except IOError, e:
+    print >>sys.stderr, "Error creating file '%s': %s" % (outputFileName, e.strerror)
+    sys.exit(1)
+
+# Process the entire movie
+try:
+    audioBuffer = []  # buffered audio sectors
+    muxCounter = 0
+
+    while True:
+
+        # Read next sector
+        sector = bytearray(inputFile.read(sectorSize))
+        if not sector:
+            break
+
+        # Decode XA sector header
+        channel = sector[1]
+        submode = sector[2]
+
+        if channel == 0:
+
+            if submode & 0x04:
+
+                # Audio sector: append to buffer
+                audioBuffer.append(sector)
+
+            else:
+
+                # Empty/unknown sector: copy to output file, muxing in the buffered audio
+                if muxCounter == audioMuxRate:
+                    outputFile.write(audioBuffer.pop(0))
+                    muxCounter = 1
+                else:
+                    muxCounter += 1
+
+                outputFile.write(sector)
+
+        elif channel == 1:
+
+            # Video data sector, decode chunk header
+            magic, chunkNumber, chunksInFrame, frameNumber, frameDataSize, frameWidth, frameHeight = struct.unpack_from("<LHHLLHH", sector, subheaderSize)
+
+            # Assemble chunks to frame
+            if chunkNumber == 0:
+                frameData = bytearray()
+
+            frameData += sector[subheaderSize + chunkHeaderSize:subheaderSize + chunkHeaderSize + chunkDataSize]
+
+            # Process completed frames
+            if chunkNumber == chunksInFrame - 1:
+                print "Frame %d:" % frameNumber,
+
+                # Create subtitle graphics
+                try:
+                    text = subTiming[frameNumber]
+                    subtitler.setText(text)
+                    print "'%s'" % text,
+                except KeyError:
+                    pass
+
+                maxDataSize = chunksInFrame * chunkDataSize
+                print "%.2f%%" % (frameDataSize * 100 / maxDataSize),
+
+                if fastMode and not subtitler.text:
+
+                    # Copy original frame
+                    newFrameData = frameData
+                    newFrameDataSize = frameDataSize
+
+                else:
+
+                    # Insert new subtitles into frame
+                    newFrameData, newFrameDataSize = processFrame(frameData, frameWidth, frameHeight, subtitler)
+
+                print "-> %.2f%%" % (newFrameDataSize * 100 / maxDataSize)
+
+                # Split into chunks and write to output file
+                for chunkNumber in xrange(chunksInFrame):
+
+                    # Mux in the buffered audio
+                    if muxCounter == audioMuxRate:
+                        outputFile.write(audioBuffer.pop(0))
+                        muxCounter = 1
+                    else:
+                        muxCounter += 1
+
+                    # Write the XA subheader
+                    subheader = bytearray("\x01\x01\x48\x00\x01\x01\x48\x00")  # XA realtime data sector, channel 1
+                    outputFile.write(subheader)
+
+                    # Write the chunk header
+                    chunkHeader = struct.pack("<LHHLLHH", magic, chunkNumber, chunksInFrame, frameNumber, newFrameDataSize, frameWidth, frameHeight)
+                    chunkHeader += '\0' * 12
+                    outputFile.write(chunkHeader)
+
+                    # Write the chunk data
+                    startInFrame = chunkNumber * chunkDataSize
+                    outputFile.write(newFrameData[startInFrame:startInFrame + chunkDataSize])
+
+                    # Write dummy EDC/ECC data (psxbuild will recalculate it)
+                    outputFile.write('\0' * edcSize)
+
+        else:
+            print >>sys.stderr, "Unknown sector encountered"
+            sys.exit(1)
+
+    # Flush the audio buffer and close the output file
+    while audioBuffer:
+        outputFile.write(audioBuffer.pop(0))
+
+    outputFile.close()
+    print "Done."
+
+except Exception, e:
+
+    # Pokemon exception handler
+    print >>sys.stderr, unicode(e.message).encode("utf-8")
+    sys.exit(1)

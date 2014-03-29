@@ -1,0 +1,76 @@
+#!/usr/bin/python
+
+#
+# UnScene - Extract the Final Fantasy VII SCENE.BIN file
+#
+# Copyright (C) 2014 Christian Bauer <www.cebix.net>
+#
+# Permission to use, copy, modify, and/or distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+
+__version__ = "1.0"
+
+import sys
+import os
+
+import ff7
+
+
+# Print usage information and exit.
+def usage(exitcode, error = None):
+    print "Usage: %s [OPTION...] <file>" % os.path.basename(sys.argv[0])
+    print "  -V, --version                   Display version information and exit"
+    print "  -?, --help                      Show this help message"
+
+    if error is not None:
+        print >>sys.stderr, "\nError:", error
+
+    sys.exit(exitcode)
+
+
+# Parse command line arguments
+inputFileName = None
+
+for arg in sys.argv[1:]:
+    if arg == "--version" or arg == "-V":
+        print "UnScene", __version__
+        sys.exit(0)
+    elif arg == "--help" or arg == "-?":
+        usage(0)
+    elif arg[0] == "-":
+        usage(64, "Invalid option '%s'" % arg)
+    else:
+        if inputFileName is None:
+            inputFileName = arg
+        else:
+            usage(64, "Unexpected extra argument '%s'" % arg)
+
+if inputFileName is None:
+    usage(64, "No input file specified")
+
+# Read the scene archive
+try:
+    inputFile = open(inputFileName, "rb")
+except IOError, e:
+    print >>sys.stderr, "Error opening file '%s': %s" % (inputFileName, e.strerror)
+    sys.exit(1)
+
+# Extract the scenes
+archive = ff7.scene.Archive(inputFile)
+
+for i in xrange(archive.numScenes()):
+    scene = archive.getScene(i)
+
+    outputFileName = "SCENE_%03d.data" % i
+    try:
+        outputFile = open(outputFileName, "wb")
+    except IOError, e:
+        print >>sys.stderr, "Cannot create file '%s': %s" % (outputFileName, e.strerror)
+        sys.exit(1)
+
+    outputFile.write(scene.data)
+    outputFile.close()
+
+    print "Written '%s'" % outputFileName

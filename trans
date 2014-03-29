@@ -1,0 +1,1093 @@
+#!/usr/bin/python
+
+#
+# Trans - Insert all translatable text of Final Fantasy VII from text files
+#
+# Copyright (C) 2014 Christian Bauer <www.cebix.net>
+#
+# Permission to use, copy, modify, and/or distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+
+__version__ = "1.0"
+
+import sys
+import os
+import struct
+import shutil
+import re
+
+import ff7
+from ff7.field import Op
+
+
+# Check whether a translation text file exists.
+def haveTrans(transPath, subDir, fileName):
+    filePath = os.path.join(transPath, subDir, fileName)
+    return os.path.isfile(filePath)
+
+
+# Retrieve the contents of a UTF-8 translation text file as a list of unicode
+# strings.
+def retrieveTrans(transPath, subDir, fileName):
+    filePath = os.path.join(transPath, subDir, fileName)
+
+    f = open(filePath, "r")
+    lines = f.readlines()
+    f.close()
+
+    return [l.decode("utf-8").rstrip("\n\r") for l in lines]
+
+
+# Retrieve the strings of a UTF-8 field translation file as a list of
+# unicode strings. In a field translation file, strings may have multiple
+# lines, with a line starting with U+25B6 (black right-pointing triangle)
+# before each string.
+def retrieveFieldTrans(transPath, subDir, fileName):
+    filePath = os.path.join(transPath, subDir, fileName)
+
+    f = open(filePath, "r")
+    lines = f.readlines()
+    f.close()
+
+    strings = []
+    if not lines:
+        return strings
+
+    lines = [l.decode("utf-8") for l in lines]
+    if lines[0].startswith(u'\u25b6'):
+        lines = lines[1:]
+    else:
+        raise EnvironmentError, u"First line of file '%s' is expected to start with '\u25b6'" % filePath
+
+    currentString = ""
+    for line in lines:
+        if line.startswith(u'\u25b6'):
+
+            # A line starting with U+25B6 ends the current string
+            if currentString.endswith(u'\n'):
+                currentString = currentString[:-1]  # strip final newline
+
+            strings.append(currentString)
+            currentString = ""
+            continue
+
+        else:
+            # Append line to current string
+            currentString += line
+
+    # Add the last string
+    if currentString.endswith(u'\n'):
+        currentString = currentString[:-1]  # strip final newline
+
+    strings.append(currentString)
+    return strings
+
+
+# Return the modification time of a file in the disc or translation
+# directory.
+def modTime(basePath, subDir, fileName):
+    filePath = os.path.join(basePath, subDir, fileName)
+    return os.path.getmtime(filePath)
+
+
+# Retrieve a file from the disc directory for updating, first creating a
+# backup.
+def openForUpdate(discPath, subDir, fileName):
+    filePath = os.path.join(discPath, subDir, fileName)
+    backupPath = filePath + ".orig"
+
+    # Create a backup file
+    if not os.path.exists(backupPath):
+        shutil.copyfile(filePath, backupPath)
+        print "'%s' backed up to '%s'" % (filePath, backupPath)
+
+    # Open the file for updating
+    return open(filePath, "r+b")
+
+
+# Load the font metrics.
+def retrieveMetrics(discPath):
+    windowDataFile = ff7.retrieveFile(discPath, "INIT", "WINDOW.BIN")
+    windowBin = ff7.kernel.Archive(windowDataFile)
+    metricsFile = windowBin.getFile(1, 0)
+    return bytearray(metricsFile.getData())
+
+
+# Translate strings in executable files.
+def translateFiles(transPath, discPath, execFileName, version):
+    print "Translating executables..."
+
+    # Get the file list
+    if version == ff7.Version.DE:
+        files = ff7.data.execFileData_DE
+    elif version == ff7.Version.US:
+        files = ff7.data.execFileData_US
+    elif version == ff7.Version.JP:
+        files = ff7.data.execFileData_JP
+    else:
+        files = []
+
+    # Handle all files
+    for discDir, discFileName, offsetList in files:
+        if discFileName == "<EXEC>":
+            discFileName = execFileName
+
+        # Retrieve the file
+        discFile = openForUpdate(discPath, discDir, discFileName)
+        data = discFile.read()
+
+        # Gzipped? Then decompress it
+        gzipped = False
+
+        if data[8:11] == "\x1f\x8b\x08":
+            gzipped = True
+
+            # Bytes 0..3 are the size of the uncompressed data
+            # Bytes 4..7 specify the amount of RAM reserved for the executable (including BSS section)
+            dataSize = struct.unpack_from("<L", data)[0]
+            segmentSize = data[4:8]
+
+            data = ff7.decompressGzip(data[8:])
+            assert dataSize == len(data)
+
+        # Insert the strings
+        for offset, stringSize, numStrings, jpEnc, transDir, transFileName in offsetList:
+
+            # Read the translation file
+            lines = retrieveTrans(transPath, transDir, transFileName)
+            if len(lines) != numStrings:
+                raise EnvironmentError, "File '%s' expected to contain %d lines but found %d" % (transFileName, numStrings, len(lines))
+
+            # Insert the strings
+            for string in lines:
+                rawString = ff7.encodeKernelText(string, jpEnc)
+                rawStringSize = len(rawString)
+
+                if rawStringSize > stringSize:
+                    raise EnvironmentError, "String '%s' from file '%s' is too long when encoded (%d > %d bytes)" % (string.encode("utf-8"), transFileName, rawStringSize, stringSize)
+
+                if rawStringSize < stringSize:
+                    rawString += '\x00' * (stringSize - rawStringSize)  # pad with 0x00 bytes
+
+                data = data[:offset] + rawString + data[offset + stringSize:]
+                offset += stringSize
+
+        # Gzipped? Then recompress it
+        if gzipped:
+            data = struct.pack("<L", dataSize) + segmentSize + ff7.compressGzip(data)
+
+        # Save the file
+        discFile.seek(0)
+        discFile.truncate()
+        discFile.write(data)
+        discFile.close()
+
+
+# Translate string in snowboard minigame.
+def translateSnobo2(transPath, discPath, version):
+    print "Translating snowboard minigame..."
+
+    # Get the string list
+    if version == ff7.Version.DE:
+        offsets = ff7.data.snobo2Data_DE
+    elif version == ff7.Version.US:
+        offsets = ff7.data.snobo2Data_US
+    elif version == ff7.Version.JP:
+        offsets = ff7.data.snobo2Data_JP
+    else:
+        offsets = []
+
+    if not offsets:
+        return
+
+    # Retrieve the minigame executable
+    discFile = openForUpdate(discPath, "MINI", "SNOBO2.BIN")
+    data = discFile.read()
+
+    # Decompress it
+    dataSize = struct.unpack_from("<L", data)[0]
+    segmentSize = data[4:8]
+    data = ff7.decompressGzip(data[8:])
+    assert dataSize == len(data)
+
+    # Read the translation file
+    transFileName = "snobo2.txt"
+    lines = retrieveTrans(transPath, "snobo2", transFileName)
+    if len(lines) != len(offsets):
+        raise EnvironmentError, "File '%s' expected to contain %d lines but found %d" % (transFileName, len(offsets), len(lines))
+
+    # Insert the strings
+    for (offset, stringSize), string in zip(offsets, lines):
+        string = string.encode("ascii") + '\0'
+
+        if len(string) > stringSize:
+            raise EnvironmentError, "String '%s' from file '%s' is too long (%d > %d bytes)" % (string, transFileName, len(string), stringSize)
+
+        if len(string) < stringSize:
+            string += '\x00' * (stringSize - len(string))  # pad with 0x00 bytes
+
+        data = data[:offset] + string + data[offset + stringSize:]
+
+    # Recompress the file
+    data = struct.pack("<L", dataSize) + segmentSize + ff7.compressGzip(data)
+
+    # Save it
+    discFile.seek(0)
+    discFile.truncate()
+    discFile.write(data)
+    discFile.close()
+
+
+# Translate the kernel string lists.
+def translateKernel(transPath, discPath, version):
+    print "Translating kernel strings..."
+
+    # Retrieve the kernel data file
+    kernelDataFile = openForUpdate(discPath, "INIT", "KERNEL.BIN")
+    kernelBin = ff7.kernel.Archive(kernelDataFile)
+
+    # Replace all string lists
+    for index, numStrings, compressed, transDir, transFileName in ff7.data.kernelStringData:
+        lines = retrieveTrans(transPath, transDir, transFileName)
+        if len(lines) != numStrings:
+            raise EnvironmentError, "File '%s' expected to contain %d lines but found %d" % (transFileName, numStrings, len(lines))
+
+        stringList = ff7.kernel.StringList()
+        stringList.setStrings(lines)
+
+        stringFile = ff7.kernel.ArchiveFile(9, index)
+        stringFile.setData(stringList.getData(compressed))
+
+        kernelBin.addFile(stringFile)
+
+    # Replace the initial character names
+    initFile = kernelBin.getFile(3, 0)
+    data = initFile.getData()
+
+    lines = retrieveTrans(transPath, "kernel", "init_name.txt")
+    if len(lines) != 9:
+        raise EnvironmentError, "File 'init_name.txt' expected to contain 9 lines but found %d" % len(lines)
+
+    offset = 0x10
+    for string in lines:
+        rawString = ff7.encodeKernelText(string)
+        rawStringSize = len(rawString)
+
+        if rawStringSize > 12:
+            raise EnvironmentError, "String '%s' from file 'init_name.txts' is too long when encoded (%d > 12 bytes)" % (string.encode("utf-8"), rawStringSize)
+
+        if rawStringSize < 12:
+            rawString += '\xff' * (12 - rawStringSize)  # pad with 0xff bytes
+
+        data = data[:offset] + rawString + data[offset + 12:]
+        offset += 0x84
+
+    initFile.setData(data)
+    kernelBin.addFile(initFile)
+
+    # Save the file
+    kernelBin.writeToFile(kernelDataFile)
+    kernelDataFile.close()
+
+
+# Translate the world module string list.
+def translateWorld(transPath, discPath, version, incremental):
+    print "Translating world maps..."
+
+    if version == ff7.Version.DE:
+        listBase = ff7.data.worldStringListOffset_DE
+    elif version == ff7.Version.US:
+        listBase = ff7.data.worldStringListOffset_US
+    elif version == ff7.Version.JP:
+        listBase = ff7.data.worldStringListOffset_JP
+    else:
+        return
+
+    transFileName = "world.txt"
+    moduleFileName = "WORLD.BIN"
+
+    # Skip if translation is older than world module
+    if incremental and (modTime(transPath, "world", transFileName) < modTime(discPath, "WORLD", moduleFileName)):
+#        print "world is up to date, skipping"
+        return
+
+    # Retrieve the world module file and decompress it
+    discFile = openForUpdate(discPath, "WORLD", moduleFileName)
+    data = discFile.read()
+
+    if data[8:11] != "\x1f\x8b\x08":
+        raise EnvironmentError, "WORLD/WORLD.BIN does not appear to be gzipped"
+
+    dataSize = struct.unpack_from("<L", data)[0]
+    segmentSize = data[4:8]
+
+    data = ff7.decompressGzip(data[8:])
+    assert dataSize == len(data)
+
+    # Read the translation file
+    strings = retrieveFieldTrans(transPath, "world", transFileName)
+
+    # Insert the strings
+    numStrings = struct.unpack_from("<H", data, listBase)[0]
+    if numStrings != len(strings):
+        raise EnvironmentError, "File '%s' expected to contain %d texts but found %d" % (transFileName, numStrings, len(strings))
+
+    stringOffsets = ""
+    stringData = ""
+
+    offset = 2 + numStrings * 2
+    for string in strings:
+        stringOffsets += struct.pack("<H", offset)
+        rawString = ff7.encodeFieldText(string, version == ff7.Version.JP)
+        stringData += rawString
+        offset += len(rawString)
+
+    stringTable = struct.pack("<H", numStrings) + stringOffsets + stringData
+    if len(stringTable) > ff7.data.worldStringListSize:
+        raise EnvironmentError, "World module strings too long when encoded (%d > %d bytes)" % (len(stringTable), ff7.data.worldStringListSize)
+
+    data = data[:listBase] + stringTable + data[listBase + len(stringTable):]
+
+    # Recompress the world module
+    data = struct.pack("<L", dataSize) + segmentSize + ff7.compressGzip(data)
+
+    # Save it
+    discFile.seek(0)
+    discFile.truncate()
+    discFile.write(data)
+    discFile.close()
+
+    # Load the font metrics
+    metrics = retrieveMetrics(discPath)
+
+    # Resize the windows
+    maps = ["WM%X" % i for i in xrange(13)]
+    maps += ["WM%XS" % i for i in xrange(11)]
+
+    for map in maps:
+        print "  %s" % map
+
+        # Read the world map script
+        mapFile = openForUpdate(discPath, "WORLD", map + ".TXZ")
+        worldMap = ff7.world.WorldMap(mapFile)
+        script = worldMap.getScript()
+
+        # Messages and questions in the script always have the following
+        # structure:
+        #
+        # clear
+        # push #x
+        # push #y
+        # push #width
+        # push #height
+        # window
+        #  ...
+        # clear
+        # push #id
+        # mes
+        #   or
+        # clear
+        # push #id
+        # push #first
+        # push #last
+        # <0x32d>
+        # ask
+        #
+        # We first look for the "push #width / push #height / window" sequence,
+        # then # for the following "push #id / mes" or "push #id / push #first /
+        # push #last / * / ask" sequence.
+
+        lastWindow = None
+
+        i = 0
+        while i < len(script):
+            isWindow = i < (len(script) - 5) and \
+                       script[i] == ff7.world.Op.PUSHI and script[i+2] == ff7.world.Op.PUSHI and \
+                       script[i+4] == ff7.world.Op.WINDOW
+
+            if isWindow:
+                lastWindow = i
+
+            isMes = i < (len(script) - 3) and \
+                    script[i] == ff7.world.Op.PUSHI and script[i+2] == ff7.world.Op.MES
+
+            isAsk = i < (len(script) - 8) and \
+                    script[i] == ff7.world.Op.PUSHI and script[i+2] == ff7.world.Op.PUSHI and \
+                    script[i+4] == ff7.world.Op.PUSHI and script[i+7] == ff7.world.Op.ASK
+
+            if isMes or isAsk:
+                stringId = script[i+1]
+                if lastWindow is None:
+                    print >>sys.stderr, "Warning: no window found for string %d in world map %s" % (stringId, map)
+                else:
+
+                    # Calculate the required size for the string
+                    width, height = ff7.textExtent(strings[stringId], metrics)
+
+                    # Account for window border
+                    width += 16
+                    height += 9
+
+                    # Set the window size
+                    script[lastWindow+1] = width
+                    script[lastWindow+3] = height
+                    lastWindow = None
+
+            i += ff7.world.instructionSize(script[i])
+
+        # Save the world map script
+        worldMap.setScript(script)
+        worldMap.writeToFile(mapFile)
+        mapFile.close()
+
+
+# Translate the strings in the battle scenes.
+def translateScenes(transPath, discPath, version):
+    print "Translating battle scenes..."
+
+    # Read the scene archive
+    scenesFile = openForUpdate(discPath, "BATTLE", "SCENE.BIN")
+    archive = ff7.scene.Archive(scenesFile)
+
+    # Process all scenes
+    for i in xrange(archive.numScenes()):
+        scene = archive.getScene(i)
+
+        # Read the translation files
+        transFileName = "%03d_enemies.txt" % i
+        enemyNames = retrieveTrans(transPath, "scene", transFileName)
+        if len(enemyNames) != 3:
+            raise EnvironmentError, "File '%s' expected to contain 3 lines but found %d" % (transFileName, len(enemyNames))
+
+        scene.setEnemyNames(enemyNames)
+
+        transFileName = "%03d_abilities.txt" % i
+        abilityNames = retrieveTrans(transPath, "scene", transFileName)
+        if len(abilityNames) != 32:
+            raise EnvironmentError, "File '%s' expected to contain 32 lines but found %d" % (transFileName, len(abilityNames))
+
+        scene.setAbilityNames(abilityNames)
+
+        transFileName = "%03d_messages.txt" % i
+        if haveTrans(transPath, "scene", transFileName):
+            strings = retrieveTrans(transPath, "scene", transFileName)
+            numStrings = len(scene.getStrings())
+            if len(strings) != numStrings:
+                raise EnvironmentError, "File '%s' expected to contain %d lines but found %d" % (transFileName, numStrings, len(strings))
+
+            scene.setStrings(strings)
+
+        archive.setScene(i, scene)
+
+    # Save the scene archive
+    archive.writeToFile(scenesFile)
+    scenesFile.close()
+
+    # Save scene index table
+    table = archive.sceneIndexTable
+
+    kernelDataFile = openForUpdate(discPath, "INIT", "KERNEL.BIN")
+    kernelBin = ff7.kernel.Archive(kernelDataFile)
+
+    battleFile = kernelBin.getFile(2, 0)
+    data = bytearray(battleFile.getData())
+
+    for i in xrange(0x40):
+        data[0xf1c + i] = 0xff
+    for i in xrange(len(table)):
+        data[0xf1c + i] = table[i]
+
+    battleFile.setData(str(data))
+    kernelBin.addFile(battleFile)
+
+    kernelBin.writeToFile(kernelDataFile)
+    kernelDataFile.close()
+
+
+# Translate the strings in the field map files.
+def translateFields(transPath, discPath, version, incremental):
+    print "Translating field maps..."
+
+    # Load the font metrics
+    metrics = retrieveMetrics(discPath)
+
+    # Process all maps
+    for map in ff7.data.fieldMaps:
+        transFileName = map.lower() + ".txt"
+        mapFileName = map + ".DAT"
+
+        # Skip those which have no translation
+        if not haveTrans(transPath, "field", transFileName):
+            continue
+
+        # Skip if translation is older than field map
+        if incremental and (modTime(transPath, "field", transFileName) < modTime(discPath, "FIELD", mapFileName)):
+#            print "  %s is up to date, skipping" % map
+            continue
+
+        print "  %s" % map
+
+        # Read the translated strings
+        strings = retrieveFieldTrans(transPath, "field", transFileName)
+
+        # Open the field map file and parse it
+        mapFile = openForUpdate(discPath, "FIELD", mapFileName)
+        mapData = ff7.field.MapData(mapFile)
+        event = mapData.getEventSection()
+
+        # Fetch the script code
+        code = event.scriptCode
+        baseAddress = event.scriptBaseAddress
+
+        # Construct the code flow graph, and extract the windowing instructions
+        # (in theory, the WROW instruction would also have to be considered
+        # but it's not used anywhere in the scripts)
+        actorEntries = set()
+        for addrs in event.actorScripts:
+            actorEntries |= set(addrs)
+
+        graph = ff7.field.buildCFG(code, baseAddress, actorEntries)
+
+        ff7.field.filterInstructions(graph, code, [Op.MES, Op.ASK, Op.WSIZE, Op.WSIZW, Op.WREST, Op.WSPCL, Op.MPNAM])
+        ff7.field.reduce(graph, actorEntries)
+
+        # Determine the window(s) with which each string is used by abstract
+        # interpretation of the script code
+        windowStrings = {}  # maps WSIZE/WSIZW instruction offset to set of string IDs
+        askStrings = {}  # maps string ID to set of ASK instruction offsets
+        mapNameStrings = []  # list of string IDs of map names
+
+        analyzedAddrs = set()
+        for scripts in event.actorScripts:
+            for entryAddr in scripts:
+                if entryAddr in analyzedAddrs:
+                    continue
+
+                analyzedAddrs.add(entryAddr)
+                paths = ff7.field.findPaths(graph, entryAddr)
+
+                for path in paths:
+
+                    # Initially, all four windows are not associated
+                    windowInstr = [None, None, None, None]
+                    windowSpecial = [False, False, False, False]
+
+                    for addr in path:
+                        block = graph[addr]
+
+                        for offset in block.instructions:
+                            op = code[offset]
+
+                            windowId = None
+                            stringId = None
+
+                            if op in (Op.WSIZE, Op.WSIZW):
+
+                                windowId = code[offset + 1] & 3
+
+                                # Remember the offset of the instruction which
+                                # defines the window
+                                windowInstr[windowId] = offset
+
+                            elif op == Op.WSPCL:
+
+                                windowId = code[offset + 1] & 3
+                                windowSpecial[windowId] = (code[offset + 2] != 0)
+
+                            elif op == Op.WREST:
+
+                                windowId = code[offset + 1] & 3
+                                windowInstr[windowId] = None
+                                windowSpecial[windowId] = False
+
+                            elif op == Op.MES:
+
+                                windowId = code[offset + 1] & 3
+                                stringId = code[offset + 2]
+
+                            elif op == Op.ASK:
+
+                                windowId = code[offset + 2] & 3
+                                stringId = code[offset + 3]
+
+                                # Remember the offsets of the ASK instructions
+                                # which reference a string
+                                if stringId in askStrings:
+                                    askStrings[stringId].add(offset)
+                                else:
+                                    askStrings[stringId] = set([offset])
+
+                            elif op == Op.MPNAM:
+
+                                mapNameStrings.append(code[offset + 1])
+
+                            if (stringId is not None) and not windowSpecial[windowId]:
+
+                                # MES or ASK encountered: Is there a window defined?
+                                instr = windowInstr[windowId]
+                                if instr is None:
+                                    print >>sys.stderr, "Warning: no window found for string %d of map %s" % (stringId, map)
+                                else:
+                                    if instr in windowStrings:
+                                        windowStrings[instr].add(stringId)
+                                    else:
+                                        windowStrings[instr] = set([stringId])
+
+        # Check the lengths of the map names
+        for stringId in mapNameStrings:
+            string = strings[stringId]
+            if len(string) > 23:
+                print >>sys.stderr, "Warning: map name string %d in map %s longer than 23 characters" % (stringId, map)
+
+        # Resize the windows
+        for instr, stringIds in windowStrings.iteritems():
+
+            # Get the current size of the window
+            currentSize = struct.unpack("<HH", str(code[instr + 6:instr + 10]))  # width, height
+
+            # Don't change window position unless a {POS} command is found
+            xAlignMode = None  # -1 = left, 0 = center, 1 = right
+            yAlignMode = None  # -1 = top, 0 = middle, 1 = bottom
+
+            # Find the maximal width and height of all strings in the window
+            maxSize = (0, 0)  # width, height
+            for stringId in stringIds:
+                string = strings[stringId]
+                if not string:
+                    continue
+
+                # Look for {POS} command in first line of string and parse the alignment flags
+                firstLine = string.split("\n")[0]
+                m = re.match(r"{POS ([lrctbm]+)}", firstLine)
+                if m:
+                    flags = m.group(1)
+
+                    if 'l' in flags:
+                        if xAlignMode == 0 or xAlignMode == 1:
+                            print >>sys.stderr, "Warning: conflicting position mode 'l' for string %d of map %s" % (stringId, map)
+                        else:
+                            xAlignMode = -1  # left
+
+                    if 'r' in flags:
+                        if xAlignMode == -1 or xAlignMode == 0:
+                            print >>sys.stderr, "Warning: conflicting position mode 'r' for string %d of map %s" % (stringId, map)
+                        else:
+                            xAlignMode = 1  # right
+
+                    if 'c' in flags:
+                        if xAlignMode == -1 or xAlignMode == 1:
+                            print >>sys.stderr, "Warning: conflicting position mode 'c' for string %d of map %s" % (stringId, map)
+                        else:
+                            xAlignMode = 0  # center
+
+                    if 't' in flags:
+                        if yAlignMode == 0 or yAlignMode == 1:
+                            print >>sys.stderr, "Warning: conflicting position mode 't' for string %d of map %s" % (stringId, map)
+                        else:
+                            yAlignMode = -1  # top
+
+                    if 'b' in flags:
+                        if yAlignMode == -1 or yAlignMode == 0:
+                            print >>sys.stderr, "Warning: conflicting position mode 'b' for string %d of map %s" % (stringId, map)
+                        else:
+                            yAlignMode = 1  # bottom
+
+                    if 'm' in flags:
+                        if yAlignMode == -1 or yAlignMode == 1:
+                            print >>sys.stderr, "Warning: conflicting position mode 'm' for string %d of map %s" % (stringId, map)
+                        else:
+                            yAlignMode = 0  # middle
+
+                    # Remove the command from the string
+                    strings[stringId] = "\n".join(string.split("\n")[1:])
+                    string = strings[stringId]
+
+                # Calculate the required size for the string
+                size = ff7.textExtent(string, metrics)  # width, height
+                if size[0] > 296:
+                    print >>sys.stderr, "Warning: string %d of map %s too wide" % (stringId, map)
+
+                # Account for window border
+                size = (size[0] + 16, size[1] + 9)
+
+                # Find the maximum
+                if size[0] > maxSize[0]:
+                    maxSize = (size[0], maxSize[1])
+                if size[1] > maxSize[1]:
+                    maxSize = (maxSize[0], size[1])
+
+            # Set the window size
+            struct.pack_into("<HH", code, instr + 6, maxSize[0], maxSize[1])
+
+            # Reposition the window if required
+            if xAlignMode is not None:
+                if xAlignMode < 0:
+                    x = 0
+                elif xAlignMode > 0:
+                    x = 320
+                else:
+                    x = (320 - maxSize[0]) / 2
+                    if x < 0:
+                        x = 0
+
+                struct.pack_into("<H", code, instr + 2, x)
+
+            if yAlignMode is not None:
+                if yAlignMode < 0:
+                    y = 0
+                elif yAlignMode > 0:
+                    y = 240
+                else:
+                    y = (216 - maxSize[1]) / 2
+                    if y < 0:
+                        y = 0
+
+                struct.pack_into("<H", code, instr + 4, y)
+
+        # Check the consistency of strings used with ASK instructions
+        for stringId, askOffsets in askStrings.iteritems():
+            string = strings[stringId]
+            lines = string.split('\n')
+
+            # Every choice should start with a {CHOICE} code
+            choiceLines = []
+            i = 0
+            for line in lines:
+                if line.startswith("{CHOICE}"):
+                    choiceLines.append(i)
+                i += 1
+                if line.endswith("{NEW}"):
+                    i = 0
+
+            if not choiceLines:
+                print >>sys.stderr, "Warning: string %d of map %s does not define any {CHOICE}s" % (stringId, map)
+                continue
+
+            # The choices should be on contiguous lines
+            firstChoice = min(choiceLines)
+            lastChoice = max(choiceLines)
+
+            if choiceLines != range(firstChoice, lastChoice + 1):
+                print >>sys.stderr, "Warning: {CHOICE} lines of string %d of map %s are not contiguous" % (stringId, map)
+                continue
+
+            # The line numbers of the first and last choice should match
+            # those defined in the ASK instructions
+            for offset in askOffsets:
+                currentFirst = code[offset + 4]
+                currentLast = code[offset + 5]
+
+                if currentFirst != firstChoice or currentLast != lastChoice:
+                    print >>sys.stderr, "Warning: {CHOICE} lines of string %d of map %s expected from %d to %d instead of %d to %d" % (stringId, map, currentFirst, currentLast, firstChoice, lastChoice)
+
+        # Replace the strings in the field map
+        event.setStrings(strings)
+
+        # Look for tutorial data
+        i = 0
+        for extra in event.getExtras():
+
+            # Skip music data
+            if extra[0:4] != "AKAO":
+
+                # Translation of the tutorial script present?
+                tutorialFileName =  "%s-%d.txt" % (map.lower(), i)
+                if haveTrans(transPath, "tutorial", tutorialFileName):
+                    print "    Tutorial %d" % i
+
+                    # Yes, insert the script
+                    tutorial = ff7.tutorial.Script(extra)
+                    script = retrieveTrans(transPath, "tutorial", tutorialFileName)
+                    tutorial.setScript(script)
+                    event.setExtra(i, tutorial.getData())
+
+            i += 1
+
+        # Save the file
+        mapData.setEventSection(event)
+        mapData.writeToFile(mapFile)
+        mapFile.close()
+
+
+# Add a character image to a font.
+def addCharacter(font, charCode, image):
+
+    # The font texture defines 12x12 pixel characters, with 21 characters
+    # per row
+    charsPerRow = 21
+    charSize = 12
+
+    # Find the position of the upper-left pixel of the character in the
+    # texture
+    x = (charCode % charsPerRow) * charSize
+    y = int(charCode / charsPerRow) * charSize
+
+    stride = 0x80  # 128 bytes (256 pixels) per TIM row
+    startOffset = 0x220  # skip TIM header and CLUTs
+
+    offset = startOffset + x/2 + y * stride
+
+    # Convert the character image from string ('#' = bright pixel, '.' =
+    # dark pixel, ' ' = transparent) to binary, and insert it in the font
+    for line in image:
+        for i in xrange(0, len(line), 2):
+            c1 = line[i]
+            c2 = line[i+1]
+
+            if c1 == '#':
+                p1 = 3
+            elif c1 == '.':
+                p1 = 1
+            else:
+                p1 = 0
+
+            if c2 == '#':
+                p2 = 3
+            elif c2 == '.':
+                p2 = 1
+            else:
+                p2 = 0
+
+            font[offset + i/2] = (p2 << 4) | p1  # right pixel is in upper nybble in 4-bit TIM
+
+        offset += stride
+
+
+# Repair some broken font metrics in the western releases and add extra
+# characters.
+def patchFont(discPath, version):
+    if version == ff7.Version.JP:
+        return
+
+    print "Fixing font..."
+
+    # Retrieve the window data file
+    windowDataFile = openForUpdate(discPath, "INIT", "WINDOW.BIN")
+    windowBin = ff7.kernel.Archive(windowDataFile)
+
+    # Find the metrics file
+    metricsFile = windowBin.getFile(1, 0)
+    metrics = bytearray(metricsFile.getData())
+
+    # Patch it
+    metrics[0x01] = 0x03           # narrow "!"
+    metrics[0x08] = 0x05           # narrow "("
+    metrics[0x09] = 0x05           # narrow ")"
+    metrics[0x0c] = 0x04           # narrow "."
+    metrics[0x0e] = 0x05           # narrow ","
+    metrics[0x11] = 0x27           # fix kerning of "1"
+    metrics[0x1f] = 0x06           # narrow "?"
+    metrics[0x60] = metrics[0x21]  # "A with diaeresis" has same width as "A"
+    metrics[0x61] = metrics[0x21]  # "A with ring above" has same width as "A"
+    metrics[0x62] = metrics[0x23]  # "C with cedilla" has same width as "C"
+    metrics[0x63] = metrics[0x25]  # "E with acute" has same width as "E"
+    metrics[0x64] = metrics[0x2e]  # "N with tilde" has same width as "N"
+    metrics[0x68] = metrics[0x41]  # "a with grave" has same width as "a"
+    metrics[0x73] = metrics[0x49]  # "i with grave" has same width as "i"
+    metrics[0x80] = 0x0b           # heart (extra character)
+    metrics[0x84] = 0x0d           # right/left arrow (extra character)
+    metrics[0x85] = 0x2d           # right arrow (extra character)
+    metrics[0x86] = 0x28           # note (extra character)
+    metrics[0x88] = 0x0a           # alpha (extra character)
+    metrics[0xcb] = 0x04           # "I with circumflex" is wider than "I"
+    metrics[0xcc] = 0x04           # "I with diaeresis" is wider than "I"
+
+    # Write it back
+    metricsFile.setData(str(metrics))
+    windowBin.addFile(metricsFile)
+
+    # Find the font texture
+    fontFile = windowBin.getFile(0, 1)
+    font = bytearray(fontFile.getData())
+
+    # Patch it
+    heart = [
+        '            ',
+        '  #.  #.    ',
+        ' ###.###.   ',
+        '#########.  ',
+        '#########.  ',
+        '#########.  ',
+        '.#######..  ',
+        ' .#####..   ',
+        '  .###..    ',
+        '   .#..     ',
+        '    ..      ',
+        '            ',
+    ]
+    addCharacter(font, 0x80, heart)
+
+    rlArrow = [
+        '            ',
+        '            ',
+        '            ',
+        '  #.    #.  ',
+        ' #..    .#. ',
+        '###########.',
+        '.#.......#..',
+        ' .#.    #.. ',
+        '  ..    ..  ',
+        '            ',
+        '            ',
+        '            ',
+    ]
+    addCharacter(font, 0x84, rlArrow)
+
+    rightArrow = [
+        '            ',
+        '            ',
+        '            ',
+        '        #.  ',
+        '        .#. ',
+        '###########.',
+        '.........#..',
+        '        #.. ',
+        '        ..  ',
+        '            ',
+        '            ',
+        '            ',
+    ]
+    addCharacter(font, 0x85, rightArrow)
+
+    note = [
+        '   #.       ',
+        '   ##.      ',
+        '   #.#.     ',
+        '   #.#.     ',
+        '   #...     ',
+        '   #.       ',
+        ' ###.       ',
+        '####.       ',
+        '####.       ',
+        '.##..       ',
+        ' ...        ',
+        '            ',
+    ]
+    addCharacter(font, 0x86, note)
+
+    alpha = [
+        '            ',
+        '            ',
+        '   ##.      ',
+        '  #..#.#.   ',
+        ' #.. .#..   ',
+        '#..  #..    ',
+        '#.   #.     ',
+        '#.  ##.     ',
+        '.###..##.   ',
+        ' .... ...   ',
+        '            ',
+        '            ',
+    ]
+    addCharacter(font, 0x88, alpha)
+
+    # Write it back
+    fontFile.setData(str(font))
+    windowBin.addFile(fontFile)
+
+    windowBin.writeToFile(windowDataFile)
+    windowDataFile.close()
+
+
+# Patch the main executable to start a "new game" in debug mode.
+def patchDebugMode(discPath, execFileName, version):
+
+    if version == ff7.Version.DE:
+        offset = 0x23f4
+    elif version == ff7.Version.US:
+        offset = 0x23d8
+    elif version == ff7.Version.JP:
+        offset = 0x23d8
+    else:
+        return
+
+    print "Setting game to debug mode..."
+
+    # Patch the initial map ID in the main executable
+    f = openForUpdate(discPath, "", execFileName)
+    f.seek(offset)
+    f.write("\x41\x00")  # map ID of STARTMAP
+    f.close()
+
+
+# Print usage information and exit.
+def usage(exitcode, error = None):
+    print "Usage: %s [OPTION...] <trans_dir> <game_dir>" % os.path.basename(sys.argv[0])
+    print "  -i, --incremental               Only translate maps whose translation has changed"
+    print "  -f, --fix-font                  Repair font metrics and add extra characters"
+    print "  -d, --debug                     Start the game in debug mode"
+    print "  -V, --version                   Display version information and exit"
+    print "  -?, --help                      Show this help message"
+
+    if error is not None:
+        print >>sys.stderr, "\nError:", error
+
+    sys.exit(exitcode)
+
+
+# Parse command line arguments
+transPath = None
+discPath = None
+incremental = False
+fixFont = False
+debugMode = False
+
+for arg in sys.argv[1:]:
+    if arg == "--version" or arg == "-V":
+        print "Trans", __version__
+        sys.exit(0)
+    elif arg == "--help" or arg == "-?":
+        usage(0)
+    elif arg == "--incremental" or arg == "-i":
+        incremental = True
+    elif arg == "--fix-font" or arg == "-f":
+        fixFont = True
+    elif arg == "--debug" or arg == "-d":
+        debugMode = True
+    elif arg[0] == "-":
+        usage(64, "Invalid option '%s'" % arg)
+    else:
+        if transPath is None:
+            transPath = arg
+        elif discPath is None:
+            discPath = arg
+        else:
+            usage(64, "Unexpected extra argument '%s'" % arg)
+
+if transPath is None:
+    usage(64, "No translation input directory specified")
+if discPath is None:
+    usage(64, "No game data directory specified")
+
+try:
+
+    if not os.path.isdir(discPath):
+        raise EnvironmentError, "'%s' is not a directory" % discPath
+
+    # Check that this is a FF7 disc
+    version, discNumber, execFileName = ff7.checkDisc(discPath)
+
+    # Insert everything
+    translateFiles(transPath, discPath, execFileName, version)
+    translateSnobo2(transPath, discPath, version)
+    translateKernel(transPath, discPath, version)
+
+    if fixFont:  # change metrics before translating the fields
+        patchFont(discPath, version)
+
+    translateWorld(transPath, discPath, version, incremental)
+    translateScenes(transPath, discPath, version)
+    translateFields(transPath, discPath, version, incremental)
+
+    if debugMode:
+        patchDebugMode(discPath, execFileName, version)
+
+    print "Done."
+
+except Exception, e:
+
+    # Pokemon exception handler
+    print >>sys.stderr, unicode(e.message).encode("utf-8")
+    sys.exit(1)

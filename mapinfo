@@ -1,0 +1,159 @@
+#!/usr/bin/python
+
+#
+# MapInfo - Extract event texts and scripts of Final Fantasy VII maps
+#
+# Copyright (C) 2014 Christian Bauer <www.cebix.net>
+#
+# Permission to use, copy, modify, and/or distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+
+__version__ = "1.0"
+
+import sys
+import os
+import shutil
+import cdio
+import iso9660
+
+import ff7
+
+
+# Print usage information and exit.
+def usage(exitcode, error = None):
+    print "Usage: %s [OPTION...] <game_dir_or_image> <output_dir>" % os.path.basename(sys.argv[0])
+    print "  -V, --version                   Display version information and exit"
+    print "  -?, --help                      Show this help message"
+
+    if error is not None:
+        print >>sys.stderr, "\nError:", error
+
+    sys.exit(exitcode)
+
+
+# Parse command line arguments
+discPath = None
+outputDir = None
+
+for arg in sys.argv[1:]:
+    if arg == "--version" or arg == "-V":
+        print "MapInfo", __version__
+        sys.exit(0)
+    elif arg == "--help" or arg == "-?":
+        usage(0)
+    elif arg[0] == "-":
+        usage(64, "Invalid option '%s'" % arg)
+    else:
+        if discPath is None:
+            discPath = arg
+        elif outputDir is None:
+            outputDir = arg
+        else:
+            usage(64, "Unexpected extra argument '%s'" % arg)
+
+if discPath is None:
+    usage(64, "No disc image or game data input directory specified")
+if outputDir is None:
+    usage(64, "No output directory specified")
+
+try:
+
+    if os.path.isfile(discPath):
+        discPath = iso9660.ISO9660.FS(discPath, cdio.drivers["BIN/CUE"])
+    elif not os.path.isdir(discPath):
+        raise EnvironmentError, "'%s' is not a directory or disc image file" % discPath
+
+    # Check that this is a FF7 disc
+    version, discNumber, execFileName = ff7.checkDisc(discPath)
+
+    # Create the output directory
+    if os.path.isfile(outputDir):
+        print >>sys.stderr, "Cannot create output directory '%s': Path refers to a file" % outputDir
+        sys.exit(1)
+
+    if os.path.isdir(outputDir):
+        answer = None
+        while answer not in ["y", "n"]:
+            answer = raw_input("Output directory '%s' exists. Delete and overwrite it (y/n)? " % outputDir)
+
+        if answer == 'y':
+            shutil.rmtree(outputDir)
+        else:
+            sys.exit(0)
+
+    try:
+        os.mkdir(outputDir)
+    except OSError, e:
+        print >>sys.stderr, "Cannot create output directory '%s': %s" % (outputDir, e.strerror)
+        sys.exit(1)
+
+    # Handle all map files
+    for map in ff7.data.fieldMaps:
+        if map == "FRCYO2" and (version in (ff7.Version.US, ff7.Version.JP)):
+            continue
+
+        print map
+
+        # Get the event data
+        mapData = ff7.field.MapData(ff7.retrieveFile(discPath, "FIELD", map + ".DAT"))
+        event = mapData.getEventSection()
+
+        # Create the output file
+        filePath = os.path.join(outputDir, map.lower() + ".txt")
+        try:
+            f = open(filePath, "w")
+        except IOError, e:
+            print >>sys.stderr, "Cannot create file '%s': %s" % (filePath, e.strerror)
+            sys.exit(1)
+
+        # Print a header
+        print >>f, "##"
+        print >>f, "## %s by %s" % (event.mapName, event.creator)
+        print >>f, "##"
+        print >>f
+
+        # Dump the strings
+        print >>f, "#"
+        print >>f, "# Message strings"
+        print >>f, "#"
+        print >>f
+
+        id = 0
+        for string in event.getStrings(version == ff7.Version.JP):
+            print >>f, (u"\u25b6 %d" % id).encode("utf-8")
+            print >>f, string.encode("utf-8")
+            id += 1
+
+        # Create the script entry label table
+        entries = []
+        for name, scripts in zip(event.actorNames, event.actorScripts):
+            for i in xrange(len(scripts)):
+                addr = scripts[i]
+                if i == 0:
+                    entries.append(("%s[init]" % name, addr))
+                elif i == 1:
+                    entries.append(("%s[talk]" % name, addr))
+                elif i == 2:
+                    entries.append(("%s[push]" % name, addr))
+                elif i == 32:
+                    entries.append(("%s[default]" % name, addr))
+                else:
+                    entries.append(("%s[%d]" % (name, i), addr))
+
+        # Dump the scripts
+        print >>f
+        print >>f, "#"
+        print >>f, "# Event script"
+        print >>f, "#"
+
+        print >>f, ff7.field.disassemble(event.scriptCode, event.scriptBaseAddress, entries)
+
+        f.close()
+
+except Exception, e:
+
+    # Pokemon exception handler
+    print >>sys.stderr, unicode(e.message).encode("utf-8")
+    sys.exit(1)

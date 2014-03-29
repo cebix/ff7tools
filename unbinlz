@@ -1,0 +1,107 @@
+#!/usr/bin/python
+
+#
+# UnBinLz - Extract a Final Fantasy VII LZSS archive file
+#
+# Copyright (C) 2014 Christian Bauer <www.cebix.net>
+#
+# Permission to use, copy, modify, and/or distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+
+__version__ = "1.0"
+
+import sys
+import os
+import struct
+
+import ff7
+
+
+# Print usage information and exit.
+def usage(exitcode, error = None):
+    print "Usage: %s [OPTION...] <file>" % os.path.basename(sys.argv[0])
+    print "  -l, --list                      List files in archive"
+    print "  -V, --version                   Display version information and exit"
+    print "  -?, --help                      Show this help message"
+
+    if error is not None:
+        print >>sys.stderr, "\nError:", error
+
+    sys.exit(exitcode)
+
+
+# Parse command line arguments
+inputFileName = None
+listFiles = False
+
+for arg in sys.argv[1:]:
+    if arg == "--version" or arg == "-V":
+        print "UnBinLz", __version__
+        sys.exit(0)
+    elif arg == "--help" or arg == "-?":
+        usage(0)
+    elif arg == "--list" or arg == "-l":
+        listFiles = True
+    elif arg[0] == "-":
+        usage(64, "Invalid option '%s'" % arg)
+    else:
+        if inputFileName is None:
+            inputFileName = arg
+        else:
+            usage(64, "Unexpected extra argument '%s'" % arg)
+
+if inputFileName is None:
+    usage(64, "No input file specified")
+
+# Read the input archive
+try:
+    inputFile = open(inputFileName, "rb")
+except IOError, e:
+    print >>sys.stderr, "Error opening file '%s': %s" % (inputFileName, e.strerror)
+    sys.exit(1)
+
+baseName = os.path.splitext(os.path.basename(inputFileName))[0]
+
+# Process all files
+archive = ff7.binlz.Archive(inputFile)
+
+for f in archive.getFiles():
+
+    # Read first word of file and guess whether it is LZSS-compressed
+    size = len(f.cmpData)
+    compressedSize = struct.unpack_from("<L", f.cmpData)[0]
+
+    compressed = False
+    if compressedSize in range(size - 8, size - 3):
+        compressed = True
+
+    if listFiles:
+
+        # Print file information
+        if compressed:
+            print "%d: %d bytes compressed" % (f.index, compressedSize)
+        else:
+            print "%d: %d bytes" % (f.index, size)
+
+    else:
+
+        # Create output file
+        outputFileName = "%s_%02d.data" % (baseName, f.index)
+        try:
+            outputFile = open(outputFileName, "wb")
+        except IOError, e:
+            print >>sys.stderr, "Cannot create file '%s': %s" % (outputFileName, e.strerror)
+            sys.exit(1)
+
+        # Write file data
+        if compressed:
+            rawData = f.getData()
+            outputFile.write(rawData)
+        else:
+            outputFile.write(f.cmpData)
+
+        outputFile.close()
+
+        print "Written '%s'" % outputFileName

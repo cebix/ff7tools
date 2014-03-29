@@ -1,0 +1,952 @@
+FF7Tools V1.0
+=============
+
+FF7Tools is a suite of command-line translation and hacking tools for the
+PlayStation 1 version of the game Final Fantasy VII by Squaresoft. It can be
+used for modding the game, searching for hidden content, and creating fan
+translations. The main focus of the tools is on the dumping and editing of
+in-game text.
+
+The included tools are:
+
+ * trans / untrans
+   Dump ('untrans') or reinsert ('trans') all translatable text in the game
+   to or from a set of plain text files.
+
+ * fixup
+   Recalculate absolute sector references to files in a CD image of the
+   game.
+
+ * mapinfo
+   Dump the text tables and script code of all field map files.
+
+ * worldinfo
+   Dump the script code of all world map files.
+
+ * unscene
+   Extract battle scenes from the game's SCENE.BIN file.
+
+ * lzss / unlzss
+   Compress or uncompress files with the game's variant of the LZSS
+   compression algorithm.
+
+ * unbingz / unbinlz
+   Extract files from the game's GZIP- or LZSS-compressed archive files.
+
+ * tim2png
+   Convert a PlayStation TIM format image to a PNG file.
+
+ * subending
+   Losslessly replace the subtitles in the game's ending movie.
+
+The tools are entirely written in Python and have the following
+dependencies:
+
+ * Python 2.7
+
+ * pycdio >= 0.19 (https://pypi.python.org/pypi/pycdio/)
+
+ * Pillow >= 2.2.1 (https://pypi.python.org/pypi/Pillow/)
+   Used by the 'tim2png' and 'subending' tools.
+
+ * PSXImager >= 1.0 (https://github.com/cebix/psximager)
+   Used by the 'fixup' tool.
+
+Most of the tools use the included 'ff7' package which must be in the
+PYTHONPATH or reside in the same directory as the tools themselves.
+
+
+Restrictions and general information
+------------------------------------
+
+The tools are designed for the PlayStation 1 version of the game. They will
+not work with the game's PC port.
+
+The description of the tools in the subsequent sections assumes some
+familiarity with the file layout and data formats used by the game. The
+QhimmWiki (http://wiki.qhimm.com) is a good resource for this kind of
+information.
+
+'untrans', 'fixup', 'mapinfo', and 'worldinfo' are the only tools which
+operate on CD images of the game. All other tools are designed to work with
+extracted files from the filesystem of the game CDs. For extracting the
+filesystem tree of the game I recommend using the 'psxrip' tool from
+PSXImager (see link above) which preserves the XA media files the game uses.
+
+The contents of the three CDs of the game are almost identical except for
+the "MOVIE" directory, the "SNOVA" directory (only present on disc 3,
+although room for it is reserved on the first two discs as well), and some
+control files. In other words, each CD basically contains the entire game
+except for the the FMVs. To extract text and data from the game it is
+therefore sufficient to have one CD image.
+
+The tools have only been tested with the following releases of the game and
+may not work with other regional releases:
+
+ * Final Fantasy VII International (Japanese, SLPS-01057)
+ * Final Fantasy VII US (SCUS-94163)
+ * Final Fantasy VII PAL German (SCES-00869)
+
+The 'trans' tool does not work with the Japanese version of the game because
+Japanese kanji encoding is not yet implemented. Dumping Japanese text with
+the 'untrans' and 'mapinfo' tools works fine, though.
+
+
+trans / untrans
+---------------
+
+Usage: untrans [OPTION...] <game_dir_or_image> <trans_dir>
+  -V, --version                   Display version information and exit
+  -?, --help                      Show this help message
+
+Usage: trans [OPTION...] <trans_dir> <game_dir>
+  -i, --incremental               Only translate maps whose translation has changed
+  -f, --fix-font                  Repair font metrics and add extra characters
+  -d, --debug                     Start the game in debug mode
+  -V, --version                   Display version information and exit
+  -?, --help                      Show this help message
+
+These tools are the heart of the FF7Tools suite. With them you can dump and
+reinsert all translatable text in the game, i.e. all text in the game's data
+files and executables which is not hardcoded into texture graphics.
+
+When doing a retranslation of the game it is recommended that you first use
+the 'untrans' tool to dump all text, change what you want to change, and
+then use the 'trans' tool to reinsert the text into the game files. The
+section "Workflow for translation" below will give you some hints for doing
+this effectively.
+
+The 'untrans' tool extracts text from either a BIN/CUE ISO or raw
+("MODE2/2352") CD image or a local directory (the "game directory")
+containing the game files to a newly created "translation directory" which
+contains individual text files for each of the game's fields, menus, etc.
+
+The 'trans' tool performs the reverse operation of inserting the text from
+the files of the specified translation directory into the game files,
+recompressing files if necessary. It only writes to extracted game files,
+not to CD images. To put the files back into the actual game you need to
+replace the files in the CD image (for example with the 'psxinject' tool
+from PSXImager - useful if only a few files have changed), or remaster the
+CD image completely (for example with 'psxbuild' from PSXImager - necessary
+if game data files have increased in size; you then also need to use the
+'fixup' tool, see the description of 'fixup' below).
+
+The 'trans' tool creates backups (with the ending ".orig") of all files it
+changes.
+
+The translation directory holds the following subdirectories and files:
+
+  kernel/
+    The texts from the INIT/KERNEL.BIN file:
+      weapon.txt
+      weapon_help.txt
+        Weapon names and associated help text.
+
+      armor.txt
+      armor_help.txt
+        Armor names and associated help text.
+
+      accessory.txt
+      accessory_help.txt
+        Accessory names and associated help text.
+
+      item.txt
+      item_help.txt
+        Item names and associated help text.
+
+      key_item.txt
+      key_item_help.txt
+        Key item names and associated help text.
+
+      materia.txt
+      materia_help.txt
+        Materia names and associated help text.
+
+      command.txt
+      command_help.txt
+        Names of battle commands and associated help text.
+
+      ability.txt
+      ability_help.txt
+        Names of player battle abilities (spells, summons, limit breaks) and
+        associated help text.
+
+      summon.txt
+        Names of the techniques used by the summons.
+
+      battle.txt
+        Various texts, mostly used during battles and in the config menu.
+
+      init_name.txt
+        The initial names of the game's characters, before they are named by
+        the player. Except for the names of Cloud ("Ex-SOLDIER"), Sephiroth
+        (during the Kalm flashback), and Red XIII (whose name shows up in
+        one dialog before he can be named - BLIN68_2 #154) these are unused
+        by the game. The default names of the characters which can be named
+        by the player are contained in the menu/default_names.txt file (see
+        below).
+
+    When editing these files you should not change the number of lines of
+    any file, even though many files contain empty entries or empty lines at
+    the end.
+
+    The strings in these files may contain some control codes denoted by {}
+    braces:
+
+      {COLOR 02}
+        Change the background color to red. Used for limit breaks.
+
+      {CHAR ff ff}
+      {TARGET ff ff}
+      {ID ff ff}
+      {ATTACK ff ff}
+      {ELEMENT ff ff}
+        Used in the "battle.txt" file to insert the name of the active
+        character, target, alphabetic target ID, attack, or element,
+        respectively.
+
+      {NUM ff ff}
+        Used in the "battle.txt" file to insert a numeric variable
+        (as determined by the game code).
+
+    To use literal '{', '}', and '\' characters in the text you need to
+    escape them as '\{', '\}', and '\\'.
+
+  battle/
+    Texts from the game's battle module, mostly related to the Battle Square
+    in the Gold Saucer.
+
+  field/
+    One file for each field map of the game, containing the entire string
+    table of that field. Each string is prefixed with a header line starting
+    with the character '▶' (Unicode U+25B6), for example:
+
+      ▶ 0 (map name)
+      Midgar, Sector 7
+      ▶ 1 (ba talk)
+      {BARRET}
+      “What the hell happened…?”
+      ▶ 2 (ba talk)
+      {CLOUD}
+      “It's nothing.”
+
+      ... etc. ...
+
+    The 'untrans' tool puts the string index number and some information
+    about where that particular string is being used into that line: the
+    names of the actor/entity ('ba' for Barret in this case) and the script
+    action (e.g. 'talk' for the actor's talk-to action). The text "(map
+    name)" indicates that this string is displayed as the name of the
+    current location in the lower-right box of the game's menu and in save
+    game descriptions.
+
+    Strings which are never actually used by a field's script code are
+    replaced with empty strings by 'untrans', and they are marked with the
+    text "(unused)" in the header. About 75% of the game's field text is
+    unused, and omitting these strings from the translation files cuts down
+    the translation effort tremendously. In most cases the unused strings
+    are exact copies of strings used in other, related maps (for example,
+    all Kalm fields basically contain the same string table, each field
+    using a different subset of it). Sometimes they also contain interesting
+    textual variations and dialog which was cut from the game. To view these
+    you can use the 'mapinfo' tool to dump the entire field map text.
+
+    The 'trans' tool looks for the '▶' header lines to determine the start
+    of each string, so you should not remove or add these lines. The text
+    following the '▶' character is ignored, however, so you can use these
+    lines to record comments about the translation.
+
+    The strings in these files may contain some special characters, and
+    control codes denoted by {} braces:
+
+      <newline> character
+        Starts a new line of text. As the game does not have automatic text
+        wrapping all line breaks must be inserted manually.
+
+      <TAB> character
+        Equivalent to 4 spaces.
+
+      {CHOICE}
+        Equivalent to 10 spaces. This code is also used by convention to
+        indent the individual choices of 'ASK' dialogs, where the player can
+        choose one of several responses like this:
+
+          ▶ 42 (oyaji talk)
+          Innkeeper
+          “It's 100 Gil per night. How about it?”
+          {CHOICE}Sure!
+          {CHOICE}No way!
+
+        The {CHOICE} code just indents the text to make room for the hand
+        cursor, nothing else. The number of choices and the line numbers
+        containing them are hard-coded in the field scripts, and the 'trans'
+        tool will not automatically adjust them. If you want to change these
+        you must use a script editor such as Makou Reactor.
+
+        As a safety measure, 'trans' does check that the {CHOICE} lines in
+        the string are compatible with the script code (same number of
+        choices and same starting line) and will print a warning if they are
+        not.
+
+        The game engine doesn't require the {CHOICE} code to be used in this
+        particular way, and some dialogs actually use regular TAB or space
+        characters to indent the choices, but I recommend that you use
+        {CHOICE} instead.
+
+      {CLOUD}
+      {BARRET}
+      {TIFA}
+      {AERITH}
+      {RED XIII}
+      {YUFFIE}
+      {CAIT SITH}
+      {VINCENT}
+      {CID}
+        Insert the name of the respective character (may be changed by the
+        player).
+
+      {PARTY #1}
+      {PARTY #2}
+      {PARTY #3}
+        Insert the name of the character in the respective position of the
+        current party.
+
+      {NEW}
+        Finish one "page" of dialog text, waiting for the player to press
+        the OK button before clearing the dialog window and continuing.
+        The maximum number of lines a window can hold at once is 13. There
+        should be no text following after the {NEW} code on the same line.
+
+      {SCROLL}
+        Wait for the player to press the OK butten, then scroll up the
+        text in the window and continue (never used in the actual game).
+
+      {PAUSE}
+        Wait until the player presses the OK button before continuing.
+
+      {WAIT <n>}
+        Wait for <n> frames.
+
+      {NUM}
+      {RNUM}
+      {HEX}
+        Insert a numeric value, set with the 'MPARA'/'MPRA2' script opcodes.
+        {NUM} and {RNUM} display in decimal, {HEX} in hexadecimal (only used
+        for debugging text). {RNUM} right-aligns the number.
+
+      {STR <offset> <length>}
+        Insert a string from the game's script variable memory. Used for
+        displaying the names and classes of Chocobos.
+
+      {FIXED}
+        Toggle fixed-width character spacing. This can be used for tabular
+        output but usually looks like crap because the character spacing is
+        so wide (the Japanese version is better off because it has a
+        fixed-width font to begin with). The item exchange dialogs in the
+        Gold Saucer's Wonder Square are an example of this code being used.
+
+      {GRAY}
+      {BLUE}
+      {RED}
+      {PURPLE}
+      {GREEN}
+      {CYAN}
+      {YELLOW}
+      {WHITE}
+      {FLASH}
+      {RAINBOW}
+        Change the text color (the default is white). {FLASH} makes the text
+        blink (never used in the actual game), {RAINBOW} applies the "limit
+        break" color cycle effect.
+
+      {POS [l|r|c][t|b|m]}
+        Adjust the position of the dialog window on the screen. This code is
+        never written by the 'untrans' tool but only used by the 'trans'
+        tool, and only recognized if it appears in the first line of a
+        string (after the '▶' header), for example:
+
+          ▶ 4 (t_dir talk)
+          {POS cm}
+          {GRAY}Back then…
+          You could get by with
+          just skinned knees…{GRAY}
+
+        This makes the window for the text appear centered on the screen.
+
+        The characters after the "POS" command determine the alignment of
+        the window: 'l' (left), 'r' (right), and 'c' (center) set its
+        horizontal position, while 't' (top), 'b' (bottom), and 'm'
+        (middle) set its vertical position. For example, "{POS tr}" puts the
+        window in the top-right corner of the screen, while "{POS c}" just
+        centers it horizontally.
+
+        Note: This control sequence makes 'trans' change the actual field
+        script code. To undo the effect it is not sufficient to just remove
+        the {POS} code from the text and rerun 'trans'; you need to restore
+        the field map .DAT file from its backup first.
+
+    To use literal '{', '}', and '\' characters in the text you need to
+    escape them as '\{', '\}', and '\\'.
+
+    Field maps which have no corresponding text file in the translation
+    directory are skipped by the 'trans' tool and left unchanged.
+
+  tutorial/
+    Texts and scripting of the in-game menu tutorials, for the three field
+    maps which have them: MDS7PB (Tifa's pub, teaching Barret about
+    Materia), MDS7_W2 (Beginner's Hall, sector 7 weapon shop upstairs), and
+    JUNPB_2 (Respectable Inn, Junon pub downstairs).
+
+    You can control the scripting of the tutorials with the following codes,
+    each of which must appear on a separate line:
+
+      {WINDOW <x> <y>}
+        Move the explanation text window to the specified screen position.
+
+      {WAIT <n>}
+        Wait for <n> frames.
+
+      {UP}
+      {DOWN}
+      {LEFT}
+      {RIGHT}
+      {OK}
+      {CANCEL}
+      {MENU}
+      {NEXT}
+      {PREV}
+        Simulate controller button presses. In the default controller
+        configuration, {MENU} corresponds to the Triangle button, and
+        {NEXT}/{PREV} correspond to the R1/L1 buttons, respectively.
+
+  world/
+    One file, "world.txt", with the menu location names and the dialog text
+    of the game's world map, in the same format as the files in the "field"
+    directory.
+
+    Most of the control codes of the field text are supported, but the TAB
+    character and {CHOICE} code in particular are not, so you have to use
+    spaces to indent text and responses. The {POS} command is also not
+    supported ('trans' still automatically resizes world map dialog windows
+    to fit their text, however).
+
+  menu/
+    Several files containing the text of the game's menus. Of particular
+    interest is the file "default_name.txt" which contains the default names
+    of the playable characters, plus Chocobos which you catch or breed
+    (= anyone for whom the "enter name" screen pops up).
+
+    The file "lv4_limit.txt" contains the character's responses to using the
+    Lv4 limit break manuals on them. The order of characters in this file is
+    Cloud > Barret > Tifa > Aerith > Red XIII > Yuffie > Vincent > Cid. Each
+    character has three lines, one for the "limit learned" dialog, one for
+    "not ready yet", and one for "it's for somebody else". The last line of
+    the file belongs to Cait Sith who has no Lv4 limit break, and always
+    responds with an "it's for somebody else" line.
+
+  scene/
+    All text from the battle scenes (the BATTLE/SCENE.BIN file), indexed by
+    scene number (0..255):
+
+      <num>_enemies.txt
+        Names of up to three enemies, usually trailed by a space character
+        so the game can append the enemy ID if needed (e.g. "Goblin A").
+
+      <num>_abilities.txt
+        32 lines with the names of the enemies' abilities (spells and
+        techniques). Not all of them are actually displayed when the ability
+        is being used, and some just contain debug text.
+
+      <num>_messages.txt
+        Only present if the AI scripts of the scene's enemies contain
+        special messages which are displayed in battle, usually during boss
+        fights. The number of messages and their sequence is fixed by the
+        enemy AI. The 'trans' tool only lets you change their content but
+        not how and when they appear.
+
+  chocobo/
+    Texts of the Chocobo Racing minigame.
+
+  snobo2/
+    Texts of the Snowboard minigame.
+
+Character set
+
+  All files in the translation directory use the UTF-8 character encoding.
+  The game's fonts do not include all Unicode characters, of course. The
+  main font of non-Japanese versions of the game which is used for all
+  dialogs basically covers the "MacOS Roman" character set, a standard set
+  for PostScript fonts. See the definition of 'normalChars' in the file
+  ff7/ff7text.py for a list of allowed characters.
+
+  When the 'trans' tool is invoked with the '-f' option it adds some
+  additional characters to this font: '♥', '↔', '→', '♪', and 'α' (♥/→/α
+  appear in the Japanese version of the game but were left out from the
+  international releases).
+
+  The special characters '〇', '△', '☐', and '✕' show an icon of the
+  corresponding PlayStation controller button.
+
+Window resizing
+
+  The 'trans' tool automatically resizes field and world map dialog windows
+  to make them fit the text displayed in them (the game's engine has no
+  dynamic window layout - all window dimensions are hard-coded in the field
+  and world scripts). This usually works very well; as long as the tool is
+  able to find the right window opcode it will size the window correctly.
+
+  Some remarks and caveats regarding this feature:
+    - Windows containing "special" displays (those Nixie tube-style counters
+      and clocks) are not resized because the position of the display within
+      the window is hard-coded in the field script. If you want to change
+      the layout of these windows you need to use a script editor such as
+      Makou Reactor.
+    - If you see the message "Warning: no window found for string <id> of
+      map <name>", then 'trans' is not able to find the window definition
+      for this string. This happens rarely and is usually caused by the
+      window definition being in a different script action (maybe it reuses
+      a window opened by a previous action), or by there not being a window
+      definition at all and the default window being used (this happens in
+      the Gold Saucer Event Square and in many if thg debug rooms). You
+      should check the size of the window in-game and, if necessary, insert
+      missing window definitions using Makou Reactor.
+    - If 'trans' seems to have made a window far too wide for the actual
+      text this is usually because the string contains a character name code
+      ({CLOUD}, {TIFA}, ...) or another dynamic element ({NUM}, {STR}).
+      The tool needs to reserve enough space for the widest name a player
+      can enter ("WWWWWWWWW"), which is much wider than any of the default
+      character names. There is no way around this issue.
+    - If a string is too wide for the screen (the maximum possible line
+      length for normal text in the game's font is about 50 characters) you
+      need to add manual line breaks or page breaks ({NEW}) to reformat the
+      text.
+
+  Window positions are not normally changed by 'trans' but the game itself
+  will automatically shift windows upwards and to the left to make them
+  entirely visible on screen. You can use the {POS} command described above
+  to re-align windows, if necessary.
+
+Warning and error messages of 'trans'
+
+  Common warning and error messages of the 'trans' tool which you may
+  encounter include:
+
+  "Warning: no window found for string <id> of map <name>"
+    'trans' was unable not resize a field dialog window because it could not
+    find its window definition. See "Window resizing" above for tips.
+
+  "Warning: map name string <id> in map <name> longer than 23 characters"
+    Location strings in field maps (displayed in the lower right of the
+    game's menu) are limited to 23 characters, and longer strings are
+    truncated even if the text would fit in its box. You should shorten the
+    name of the location.
+
+  "Warning: string <id> of map <name> too wide"
+    A dialog window wouldn't fit on the screen because the text in it is too
+    wide. You should shorten the text or insert line breaks to make the text
+    narrower. See "Window resizing" above for additional tips.
+
+  "Warning: string <id> of map <name> does not define any {CHOICE}s"
+  "Warning: {CHOICE} lines of string <id> of map <name> are not contiguous"
+  "Warning: {CHOICE} lines of string <id> of map <name> expected from <x1>
+   to <x2> instead of <y1> to <y2>"
+    The text of an 'ASK' dialog is not properly formatted, or the choices
+    presented in it are out of sync with the field script code. See the
+    description of the {CHOICE} code above for tips.
+
+  "File '<file>' expected to contain <x> lines but found <y>"
+    Many files in the translation directory (practically anything not in the
+    "field" or "world" directories) must contain a certain fixed number of
+    lines, even if some of them are empty. You probably accidentally deleted
+    or inserted a line.
+
+  "String '<str>' from file '<file>' is too long when encoded (<x> > <y>
+   bytes)"
+    Since the 'trans' tool replaces some of the game's texts in-place, they
+    are limited in the maximum number of characters they can contain. You
+    should shorten these texts.
+
+  "Unknown escape sequence '\<char>' in string '<str>'"
+    The '\' backslash is used to escape the characters '{', '}', and '\'
+    itself. Other escape sequences are not used. To insert a literal '\'
+    into a string you need to type it as '\\'.
+
+  "Unknown command '<command>' in string '<str>'"
+  "Unknown command '<command>' in tutorial script"
+    Either you misspelled one of the {<command>} control codes, or you used
+    it in a place where it is now allowed, such as a {POS} code which is not
+    in the first line of a field string.
+
+  "Unencodable character '<char>' in string '<str>'"
+    You used a character which is not present in the game's font.
+
+Command-line options of 'trans'
+
+  The 'trans' tool has three special command-line options:
+
+  '-f' - Repair font metrics and add extra characters
+
+    The game's main font used in non-Japanese releases has some defects in
+    its metric data (most of the punctuation symbols are too wide, and some
+    characters with diacritics have different spacing from their base
+    letters), and it is missing some symbols which are present in the
+    Japanese font.
+
+    When given the '-f' option, 'trans' will fix the font problems in the
+    INIT/WINDOW.BIN file, and add five additional characters to the font:
+      ♥ (heart, indispensable for the Honeybee Inn :-)
+      ↔ (left-right arrow, useful for the "HP ↔ MP" materia)
+      → (right arrow, for the Materia evolution tutorials in Junon)
+      ♪ (eighth note, nice to have for the Junon parade)
+      α (alpha, for the "Invincible Alpha" drink on the Shin-Ra ship)
+
+  '-d' - Start the game in debug mode
+
+    As is widely known, Final Fantasy VII features an extensive set of
+    "debug rooms" left in the game, which are normally only accessible by
+    using cheat codes or by save file hacking. Since the debug rooms allow
+    jumping directly to many scenes of the game they are very useful when
+    creating mods, however.
+
+    When given the '-d' option, 'trans' will patch the main game executable
+    (e.g. "SCUS_941.6*" for the US version) to always start the game in the
+    debug hub room when selecting "New Game" from the title screen. To start
+    a regular new game, talk to Yuffie in the hub room and select the "NEW
+    START" option.
+
+    Note: Running 'trans' without '-d' does not undo this patch. To make the
+    game behave normally you have to restore a backup of the game
+    executable.
+
+  '-i' - Incremental mode, only translate maps whose translation has changed
+
+    A complete run of 'trans' or 'untrans' can take 15-30 minutes, which is
+    mostly due to my inefficient implementation of LZSS compression (it
+    achieves a marginally better compression ratio than the tools used by
+    Squaresoft, though), and excessive script code analysis going on for the
+    field map files (the FRCYO*, LASTMAP, and RCKTIN4 maps are particularly
+    problematic in this respect).
+
+    The 'untrans' tool usually only needs to be used once, but when doing a
+    mod of the game over the course of several weeks, testing and making
+    changes all the time, it quickly becomes annoying to have to wait for
+    'trans' to complete after marginal changes to the text.
+
+    When given the '-i' option, 'trans' will only retranslate and recompress
+    those world and field map files whose translation file has a later
+    modification timestamp than the corresponding game file.
+
+
+fixup
+-----
+
+Usage: fixup [OPTION...] <image>[.cue/bin]
+  -V, --version                   Display version information and exit
+  -?, --help                      Show this help message
+
+Although the CDs of Final Fantasy VII contain a full ISO directory hierarchy
+of individual data files, the game actually accesses most of its data by
+absolute sector addresses (LBNs). This means that if an image is changed in
+a way that the start sector of a file changes, the game will usually crash
+at a certain point because it reads data from the wrong location on the
+disc.
+
+The 'fixup' tool modifies the specified BIN/CUE image file in-place by
+recalculating all LBN file references in the game's code and control files
+to point to the actual locations of the files on the disc. This makes it
+possible to recreate CD images of the game completely from scratch, from a
+hierarchy of files, for example using the PSXImager tools:
+
+ 1. Dump the CD image "FF7.bin" to the directory "FF7", creating the catalog
+    file "FF7.cat" in the process:
+
+      psxrip FF7.bin FF7
+
+ 2. Change any files in the "FF7" directory.
+
+ 3. Rebuild the CD image using the catalog file created in step 1:
+
+      psxbuild FF7.cat FF7-mod.bin
+
+ 4. Fixup the CD image:
+
+      fixup FF7-mod.bin
+
+The produced image "FF7-mod.bin" can then be played in a PlayStation 1
+emulator.
+
+Note that all game files, except for those in the "MOVIE" directory, must
+start on the same sector on all three CDs, so all three CD images should be
+created from the same set of data files.
+
+The 'fixup' tool must be able to find the program 'psxinject' (part of
+PSXImager) in the current search path.
+
+
+Workflow for translation
+------------------------
+
+This section describes a possible workflow for creating a fan translation or
+a mod of Final Fantasy VII using the FF7Tools and PSXImager. Here, we assume
+that we are using the US release of the game as a basis.
+
+ 1. Produce raw ("MODE2/2352") images from the game CDs, for example using
+    cdrdao:
+
+      cdrdao read-cd --read-raw --datafile FF7-US-1.bin FF7-US-1.toc
+      toc2cue FF7-US-1.toc FF7-US-1.cue
+
+ 2. Dump the game files with 'psxrip' from PSXImager, creating the game
+    directory "FF7-US-1":
+
+      psxrip FF7-US-1
+
+ 3. Extract all game text to the translation directory "text-us":
+
+      untrans FF7-US-1 text-us
+
+ 4. Translate/modify the text files in the "text-us" directory. The 'trans'
+    tool will work faster if you make a copy of that directory and delete
+    all files from the "field" subdirectory which you are not going to
+    change, or which you haven't translated yet (since you are unlikely to
+    complete the entire game script in one go).
+
+ 5. Reinsert the text into the game files (and fix the game font):
+
+      trans -f text-us FF7-US-1
+
+ 6. Rebuild and relocate the CD image:
+
+      psxbuild FF7-US-1
+      fixup FF7-US-1
+
+ 7. Repeat steps 1, 2, 5 and 6 for the other two discs of the game. With
+    some clever symlinking it is possible to share most of the game files
+    between the three discs and only have to run the 'trans' tool once. All
+    files except for those in the "MINT" and "MOVIE" directories and the
+    root directory of the game are exactly identical for all three discs.
+
+ 7. Load the resulting images into an emulator and test your changes.
+
+ 8. If necessary, update the files in the "text-us" translation directory.
+
+ 9. Run 'trans' in incremental mode to integrate your updates:
+
+      trans -i text-us FF7-US-1
+
+ 10. Rebuild the CD image(s) as in step 6, and repeat.
+
+Note 1: CD images produced in this way will not be bootable on original
+PlayStation hardware because the PlayStation checks a signature on the CD
+which is not reproducible using 'psxbuild' and off-the-shelf CD burners.
+
+Note 2: You are not allowed to redistribute modified copies of the game
+without having obtained permission from the copyright holders (Square Enix
+in this case).
+
+
+mapinfo
+-------
+
+Usage: mapinfo [OPTION...] <game_dir_or_image> <output_dir>
+  -V, --version                   Display version information and exit
+  -?, --help                      Show this help message
+
+The 'mapinfo' tool dumps the entire string table (including unused text
+which is omitted by 'untrans') and a rough disassembly of the script code
+for each field map (FIELD/*.DAT) of the game. It creates the given output
+directory and writes one text file per map.
+
+The string tables are useful when searching for hidden text or unused/cut
+dialog in the game. The disassembled script code can give you a general idea
+of how a particular map's scripts are organized, but for a more detailed
+analysis of the game's story and mechanics it is much more convenient to
+view the code in a proper script editor like Makou Reactor instead.
+
+
+worldinfo
+---------
+
+Usage: worldinfo [OPTION...] <game_dir_or_image> <output_dir>
+  -V, --version                   Display version information and exit
+  -?, --help                      Show this help message
+
+The 'worldinfo' tool dumps a rough disassembly of the script code inside the
+world map files (WORLD/*.TXZ) of the game. It creates the given output
+directory and writes one text file per map.
+
+
+unscene
+-------
+
+Usage: unscene [OPTION...] <file>
+  -V, --version                   Display version information and exit
+  -?, --help                      Show this help message
+
+The 'unscene' tool extracts all 256 battle scene data sets from the
+SCENE.BIN file given as the <file> argument, writing them in uncompressed
+form to individual "SCENE_<num>.data" files.
+
+
+lzss / unlzss
+-------------
+
+Usage: lzss [OPTION...] <fromfile> <tofile>
+  -V, --version                   Display version information and exit
+  -?, --help                      Show this help message
+
+Usage: unlzss [OPTION...] <fromfile> <tofile>
+  -V, --version                   Display version information and exit
+  -?, --help                      Show this help message
+
+The 'lzss' and 'unlzss' tools compress and decompress individual files
+compressed with the game's version of the LZSS algorithm.
+
+Examples for such files are the field maps (FIELD/*.DAT) and all files
+having the .LZS extension.
+
+
+unbingz / unbinlz
+-----------------
+
+Usage: unbingz [OPTION...] <file>
+  -l, --list                      List files in archive
+  -V, --version                   Display version information and exit
+  -?, --help                      Show this help message
+
+Usage: unbinlz [OPTION...] <file>
+  -l, --list                      List files in archive
+  -V, --version                   Display version information and exit
+  -?, --help                      Show this help message
+
+The 'unbingz' and 'unbinlz' can list or extract archive files in two
+proprietary formats used by the game. In the 'bingz' format the archive
+members are compressed with the GZIP algorithm, in the 'binlz' format they
+are compressed with the LZSS algorithm or stored in uncompressed form.
+
+When run without the '-l' (list) option, both tools extract and decompress
+all archive members to files in the current directory:
+
+  "<name>_<dir>_<idx>.data" for 'unbingz'
+  "<name>_<idx>.data" for 'unbinlz'
+
+with <name> being the basename of the given archive file.
+
+Examples for 'bingz' files are INIT/KERNEL.BIN and INIT/WINDOW.BIN. Examples
+for 'binlz' files are MOVIE/OPENING.BIN (opening credits) and
+MOVIE/STAFF*.BIN (end credits).
+
+
+tim2png
+-------
+
+Usage: tim2png [OPTION...] <input.tim> [<output.png>]
+  -V, --version                   Display version information and exit
+  -?, --help                      Show this help message
+
+The 'tim2png' tool converts an image file in the PlayStation TIM format to
+the standard PNG format. This tool is not specific to Final Fantasy VII in
+any way and can be used as a general image conversion tool.
+
+'tim2png' can convert 4-bit, 8-bit, 16-bit, and 24-bit input files, but only
+uses the first CLUT found in 4-bit and 8-bit images, so images with
+multiple CLUTs may not be displayed correctly.
+
+
+subending
+---------
+
+Usage: subending [OPTION...] <fromfile.MOV> <tofile.MOV>
+  -f, --fast                      Keep original subtitles unless overridden
+  -V, --version                   Display version information and exit
+  -?, --help                      Show this help message
+
+'subending' is a highly specialized tool which can replace the subtitles in
+the game's ending movie ("MOVIE/ENDING2*.MOV") while preserving the original
+video and audio data.
+
+The input file must be a 2336-byte-per-sector "raw" XA Form 2 file, such as
+produced by the PSXImager tool 'psxrip'. The output file will be in the same
+format and have the same size as the input movie.
+
+In this particular movie, the subtitles are hard-coded into the video image
+but thankfully placed in the black bar below the actual video. So what this
+tool does is to copy the audio data and upper portion of the video data of
+the movie while replacing and recompressing only the lower portion of the
+image with new subtitles.
+
+As great as this sounds in theory, the 'subending' tool is a bit of a pain
+to use in practice:
+
+ 1. You have to change variables in the tool's source code to set the file
+    name and size of the TrueType font to use for the subtitles
+    ("fontFileName" and "fontSize"), and to edit the subtitle script and
+    timing ("subTiming").
+
+ 2. The maximum amount of data available for each compressed video frame of
+    the movie is fixed by the movie's frame rate and the data rate of the
+    CD. Because the tool does not recompress entire frames but only replaces
+    their subtitle portion, this may cause the frame data to overrun its
+    allotted space if the new subtitles require more bytes to store than the
+    original ones. In this case, 'subending' will abort with the message
+    "Frame data overrun", even if only one frame of the entire movie would
+    be affected by this issue.
+
+Most frames in the original movie only use up 70-80% of the allotted space
+but some can go up to nearly 100%. So the general strategy to avoid overruns
+is to make sure that the new subtitles do not require more bytes in
+compressed form than the original ones.
+
+Here are some hints for using the tool effectively and avoiding overruns:
+
+ - Only show subtitles where the original movie also has them. Frames with
+   subtitles where the original movie just has the black bar will take much
+   more space.
+ - Choose a simple, sans-serif font. Simple letter shapes compress better
+   and are also easier to read.
+ - Consider setting a smaller font size.
+ - If necessary, shorten the text or rearrange long lines into two shorter
+   lines which are shown one after another.
+ - Adjust the display time of the subtitles. For example, if a particular
+   line is to be shown up to frame 1234 but frame 1232 constantly overruns,
+   just blank this line two frames earlier.
+ - Slightly increase the blurRadius variable in the code. Subtitles with
+   more blur appear more fuzzy but compress better.
+
+While running, the tool will print the number of the currently processed
+frame and the percentage of available data space used before and after
+reinserting the new subtitles.
+
+A complete run of the tool takes about 30 minutes. When given the '-f'
+(fast) option, 'subending' will simply copy frames for which no subtitles
+are defined in the "subTiming" list instead of blanking the subtitles. This
+will tremendously cut down the running time of the tool but may make the
+original subtitles show through in some places where they are not explicitly
+overridden by new ones. Even then, you can use the "fast mode" to quickly
+check whether your new subtitles cause frame data overruns.
+
+
+Acknowledgements
+----------------
+
+Creating FF7Tools would not have been possible without:
+
+ * The QhimmWiki (http://wiki.qhimm.com), a comprehensive documentation
+   resource for file formats and internals of Squaresoft games.
+
+ * The PlayStation 1 Video (STR) Format documentation by Michael Sabin
+   (http://kenai.com/projects/jpsxdec/), a detailed explanation of
+   PlayStation 1 video encoding.
+
+ * touphScript by luksy (http://forums.qhimm.com/index.php?topic=11944.0),
+   a translation tool for the PC version of Final Fantasy VII. The
+   translation file structure and control code syntax of FF7Tools is,
+   obviously, heavily influenced by this tool which does for the PC version
+   of the game what 'trans'/'untrans' do for the PlayStation version.
+
+
+Author
+------
+
+Christian Bauer
+www.cebix.net

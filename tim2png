@@ -1,0 +1,193 @@
+#!/usr/bin/python
+
+#
+# tim2png - Convert PlayStation TIM image to PNG format
+#
+# Copyright (C) 2014 Christian Bauer <www.cebix.net>
+#
+# Permission to use, copy, modify, and/or distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+
+__version__ = "1.0"
+
+import sys
+import os
+import struct
+
+from PIL import Image
+from PIL import ImagePalette
+
+
+# Convert 16-bit little-endian ABGR format to ARGB (PIL's "BGR;15" format).
+def convertABGR(data):
+    output = bytearray()
+
+    for i in xrange(0, len(data), 2):
+        pixel = struct.unpack_from("<H", data, i)[0]
+
+        r = pixel & 0x1f
+        g = (pixel >> 5) & 0x1f
+        b = (pixel >> 10) & 0x1f
+        a = pixel & 0x8000
+        pixel = a | (r << 10) | (g << 5) | b
+
+        output.extend(struct.pack("<H", pixel))
+
+    return output
+
+
+# Read TIM image from file
+def readTimImage(f):
+
+    # Check header
+    header = f.read(8)
+    if header[:4] != "\x10\x00\x00\x00":
+        raise SyntaxError, "Not a TIM file"
+
+    flags = struct.unpack_from("<L", header, 4)[0]
+    if flags & 0xfffffff0:
+        raise SyntaxError, "Not a TIM file"
+
+    pMode = flags & 7
+    if pMode > 4:
+        raise SyntaxError, "Not a TIM file"
+    elif pMode == 4:
+        raise ValueError, "Mixed mode images not yet supported"
+
+    # Read CLUT, if present
+    palette = None
+
+    haveClut = flags & 8
+    if haveClut:
+
+        # Check CLUT header
+        clutSize = struct.unpack("<L", f.read(4))[0]
+        if clutSize < 12:
+            raise ValueError, "Size of CLUT data too small"
+
+        numEntries = (clutSize - 12) / 2
+
+        f.read(8)  # skip DX/DY/H/W (frame buffer location and size)
+
+        # Read CLUT data and convert to BGR;15
+        clut = f.read(numEntries * 2)
+
+        if pMode == 0:
+            clut += '\0' * 32 * 16  # extend to 256 entries
+            clut = clut[:512]
+
+        clut = convertABGR(clut)
+        palette = ImagePalette.raw("BGR;15", str(clut))
+
+    # Read pixel data
+    dataSize = struct.unpack("<L", f.read(4))[0]
+    if dataSize < 12:
+        raise ValueError, "Size of pixel data too small"
+
+    f.read(4)  # skip DX/DY (frame buffer location)
+
+    width, height = struct.unpack("<HH", f.read(4))
+    expectedSize = width * height * 2  # width is in 16-bit units
+
+    pixelData = f.read(expectedSize)
+
+    # Create image, converting pixel data if necessary
+    if pMode == 0:
+
+        # 4-bit indexed mode, 4 pixels in each 16-bit unit
+        width *= 4
+
+        # Expand 4-bit pixel data to 8-bit
+        output = bytearray()
+        for x in pixelData:
+            pix0 = ord(x) & 0x0f
+            pix1 = ord(x) >> 4
+
+            output.append(pix0)
+            output.append(pix1)
+
+        image = Image.fromstring("P", (width, height), str(output), "raw", "P", 0, 1)
+        image.palette = palette
+
+    elif pMode == 1:
+
+        # 8-bit indexed mode, 2 pixels in each 16-bit unit
+        width *= 2
+
+        image = Image.fromstring("P", (width, height), pixelData, "raw", "P", 0, 1)
+        image.palette = palette
+
+    elif pMode == 2:
+
+        # 16-bit direct mode, convert from ABGR to ARGB
+        output = convertABGR(pixelData)
+
+        image = Image.fromstring("RGB", (width, height), str(output), "raw", "BGR;15", 0, 1)
+
+    elif pMode == 3:
+
+        # 24-bit direct mode, 2 pixels in three 16-bit units
+        width = width * 2 / 3
+
+        image = Image.fromstring("RGB", (width, height), pixelData, "raw", "RGB", 0, 1)
+
+    return image
+
+
+# Print usage information and exit.
+def usage(exitcode, error = None):
+    print "Usage: %s [OPTION...] <input.tim> [<output.png>]" % os.path.basename(sys.argv[0])
+    print "  -V, --version                   Display version information and exit"
+    print "  -?, --help                      Show this help message"
+
+    if error is not None:
+        print >>sys.stderr, "\nError:", error
+
+    sys.exit(exitcode)
+
+
+# Parse command line arguments
+inputFileName = None
+outputFileName = None
+
+for arg in sys.argv[1:]:
+    if arg == "--version" or arg == "-V":
+        print "tim2png", __version__
+        sys.exit(0)
+    elif arg == "--help" or arg == "-?":
+        usage(0)
+    elif arg == "--list" or arg == "-l":
+        listFiles = True
+    elif arg[0] == "-":
+        usage(64, "Invalid option '%s'" % arg)
+    else:
+        if inputFileName is None:
+            inputFileName = arg
+        elif outputFileName is None:
+            outputFileName = arg
+        else:
+            usage(64, "Unexpected extra argument '%s'" % arg)
+
+if inputFileName is None:
+    usage(64, "No input file specified")
+if outputFileName is None:
+    outputFileName = os.path.splitext(inputFileName)[0] + ".png"
+
+# Read input image
+try:
+    f = open(inputFileName, "rb")
+except IOError, e:
+    print >>sys.stderr, "Error opening file '%s': %s" % (inputFileName, e.strerror)
+    sys.exit(1)
+
+try:
+    image = readTimImage(f)
+except Exception, e:
+    print >>sys.stderr, "Error reading TIM image '%s': %s" % (inputFileName, str(e))
+    sys.exit(1)
+
+# Write output image
+image.save(outputFileName, "PNG")
+print "Written '%s'" % outputFileName
