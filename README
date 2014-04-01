@@ -507,7 +507,7 @@ Window resizing
       window definition being in a different script action (maybe it reuses
       a window opened by a previous action), or by there not being a window
       definition at all and the default window being used (this happens in
-      the Gold Saucer Event Square and in many if thg debug rooms). You
+      the Gold Saucer Event Square and in many of the debug rooms). You
       should check the size of the window in-game and, if necessary, insert
       missing window definitions using Makou Reactor.
     - If 'trans' seems to have made a window far too wide for the actual
@@ -579,6 +579,52 @@ Warning and error messages of 'trans'
 
   "Unencodable character '<char>' in string '<str>'"
     You used a character which is not present in the game's font.
+
+Text which is not extracted
+
+  Some of the text in the game is hardcoded into graphics data and not
+  extractable or changable with the 'trans' and 'untrans' tools:
+
+   * The opening credits which play over the Prelude theme on the title
+     screen. These are stored as TIM images in the file MOVIE/OPENING.BIN
+     which can be extracted with 'unbinlz' and 'tim2png'.
+
+   * The ending staff roll and the "500 years later" screen are stored in
+     the file MOVIE/STAFF2.BIN in a similar way.
+
+   * Some battle interface text such as the "NAME"/"BARRIER" labels and the
+     "TARGET" marker are stored as part of the TIM image in file 0/0 of
+     INIT/WINDOW.BIN and can be extracted with 'unbingz' and 'tim2png'.
+
+   * The Battle Arena handicap slots wheel graphics are in file 1/0 of
+     BATTLE/CO.BIN ('unbingz' + 'tim2png').
+
+   * The subtitles of the Sephiroth/Jenova movie which plays in the
+     Nibelheim reactor flashback is hardcoded in the video data.
+
+   * The subtitles of the game's ending movie are also hardcoded in the
+     video data but can be replaced with the 'subending' tool.
+
+   * Most interface text of the Chocobo Racing minigame is stored in
+     compressed form in the file MINI/CHOCOBO.DAT which cannot currently be
+     extracted with FF7Tools. The only text accessible with 'trans' and
+     'untrans' is the list of prices and the names of the Chocobos, which
+     are kept in the 'chocobo' directory of the translation files (see
+     above).
+
+   * All interface text of the Fort Condor minigame is stored in TIM
+     textures in the file MINI/CONDOR3.LZS. After decompressing this file
+     with 'unlzss' the individual textures can be extracted with 'unbinlz'
+     (files 5..11) and converted with 'tim2png'. The help screen of this
+     minigame is a single TIM image in the file MINI/CONDOR4.LZS which can
+     simply be decompressed with 'unlzss'.
+
+   * The HUD graphics of the submarine minigame are in the files
+     MINI/SEN0*.TIZ and can be uncompressed with 'unlzss' and converted with
+     'tim2png'. The messages (e.g. "MISSION COMPLETE") which are displayed
+     using the font in the second texture are stored as lists of PSX GPU
+     command packets in the minigame's code and cannot currently be
+     extracted or changed with FF7Tools.
 
 Command-line options of 'trans'
 
