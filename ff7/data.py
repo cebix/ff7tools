@@ -120,6 +120,84 @@ execFileData_EN = [
     ]),
 ]
 
+# French PAL version
+execFileData_FR = [
+
+    # discDir, discFileName, offsetList
+    ("", "<EXEC>", [
+        # offset, stringSize, numStrings, jpEnc, transDir, transFileName
+        (0x39944, 0x14, 23, False, "menu", "main.txt"),
+        (0x39b44, 0x08,  3, True,  "menu", "main2.txt"),  # "HP"/"MP"/"LV" texts use the 8x8 font with Japanese encoding
+    ]),
+    ("MENU", "CNFGMENU.MNU", [
+        (0x1b2c, 0x44, 51, False, "menu", "config.txt"),
+    ]),
+    ("MENU", "EQIPMENU.MNU", [
+        (0x8354, 0x14, 23, False, "menu", "equip_attr.txt"),
+        (0x8568, 0x0a,  9, False, "menu", "element.txt"),
+        (0x85c4, 0x22,  4, False, "menu", "remove.txt"),
+        (0x864c, 0x1a, 42, False, "menu", "materia.txt"),
+    ]),
+    ("MENU", "FORMMENU.MNU", [
+        (0x1cfc, 0x26,  6, False, "menu", "form1.txt"),
+        (0x1de0, 0x16, 26, False, "menu", "form2.txt"),
+    ]),
+    ("MENU", "ITEMMENU.MNU", [
+        (0x325c, 0x3c, 25, False, "menu", "lv4_limit.txt"),
+        (0x3f58, 0x0e, 11, False, "menu", "item.txt"),
+    ]),
+    ("MENU", "LIMTMENU.MNU", [
+        (0x2128, 0x28, 14, False, "menu", "limit.txt"),
+    ]),
+    ("MENU", "MGICMENU.MNU", [
+        (0x293c, 0x1a, 14, False, "menu", "magic.txt"),
+    ]),
+    ("MENU", "NAMEMENU.MNU", [
+        (0x8e6c, 0x0c, 10, False, "menu", "default_name.txt"),
+        (0x8ee4, 0x0c,  8, False, "menu", "name.txt"),
+    ]),
+    ("MENU", "SAVEMENU.MNU", [
+        ( 0xef1c, 0x0c,  1, False, "menu", "save1.txt"),
+        (0x12d48, 0x32, 37, False, "menu", "save2.txt"),
+        (0x13490, 0x40, 20, False, "menu", "save3.txt"),
+        (0x13a04, 0x08,  1, False, "menu", "save4.txt"),
+    ]),
+    ("MENU", "SHOPMENU.MNU", [
+        (0x4398, 0x14,  9, False, "menu", "shop_type.txt"),
+        (0x444c, 0x2e,  8, False, "menu", "shop_greeting1.txt"),
+        (0x4ac4, 0x2e,  8, False, "menu", "shop_greeting2.txt"),
+        (0x6b7c, 0x0a,  9, False, "menu", "element.txt"),
+        (0x6bd8, 0x22,  4, False, "menu", "remove.txt"),
+        (0x6c60, 0x1a, 42, False, "menu", "materia.txt"),
+        (0x70a8, 0x1e,  5, False, "menu", "shop_menu.txt"),
+        (0x7140, 0x18, 10, False, "menu", "shop.txt"),
+        (0x7230, 0x16, 23, False, "menu", "equip_attr.txt"),
+    ]),
+    ("MENU", "STATMENU.MNU", [
+        (0x1960, 0x0a,  9, False, "menu", "element.txt"),
+        (0x19bc, 0x14, 27, False, "menu", "status.txt"),
+        (0x1bd8, 0x1a, 27, False, "menu", "stat.txt"),
+    ]),
+    ("BATTLE", "BATTLE.X", [
+        (0x5315c, 0x08,  1, False, "battle", "pause.txt"),
+        (0x53198, 0x14, 32, False, "battle", "status.txt"),
+        (0x5344c, 0x18,  1, False, "battle", "gil1.txt"),
+        (0x53464, 0x04,  1, False, "battle", "gil2.txt"),
+        (0x53468, 0x08,  1, False, "battle", "gil3.txt"),
+        (0x53470, 0x10,  1, False, "battle", "gil4.txt"),
+        (0x535c0, 0x0c,  1, False, "battle", "arena1.txt"),
+        (0x535cc, 0x20,  1, False, "battle", "arena2.txt"),
+        (0x535ec, 0x24,  5, False, "battle", "arena3.txt"),
+        (0x5369c, 0x20, 24, False, "battle", "arena_handicap.txt"),
+        (0x539bc, 0x22,  3, False, "battle", "worried.txt"),
+    ]),
+    ("MINI", "CHOCOBO.BIN", [
+        (0x12ba8, 0x06,  1, False, "chocobo", "black.txt"),
+        (0x12ccc, 0x12, 24, False, "chocobo", "prices.txt"),
+        (0x12e7c, 0x0a, 39, False, "chocobo", "names.txt"),
+    ]),
+]
+
 # German PAL version
 execFileData_DE = [
 
@@ -395,6 +473,40 @@ snobo2Data_EN = [
     (0x440, 5),
 ]
 
+# French PAL version
+snobo2Data_FR = [
+    # offset, stringSize
+    (0x350, 12),
+    (0x35c, 8),
+    (0x364, 12),
+    (0x370, 12),
+    (0x37c, 8),
+    (0x384, 8),
+    (0x38c, 12),
+    (0x398, 8),
+    (0x3a0, 12),
+    (0x3ac, 8),
+    (0x3b4, 8),
+    (0x3bc, 8),
+    (0x3c4, 12),
+    (0x3d0, 4),
+    (0x3d4, 8),
+    (0x3dc, 8),
+    (0x3e4, 8),
+    (0x3ec, 12),
+    (0x3f8, 8),
+    (0x400, 8),
+    (0x408, 8),
+    (0x410, 8),
+    (0x418, 8),
+    (0x420, 8),
+    (0x428, 8),
+    (0x430, 8),
+    (0x438, 8),
+    (0x440, 8),
+    (0x448, 6),
+]
+
 # German PAL version
 snobo2Data_DE = [
     # offset, stringSize
@@ -441,6 +553,9 @@ snobo2Data_JP = snobo2Data_EN
 
 # English PAL version
 worldStringListOffset_EN = 0x1e5b4
+
+# French PAL version
+worldStringListOffset_FR = 0x1e5b4
 
 # German PAL version
 worldStringListOffset_DE = 0x1e5b4

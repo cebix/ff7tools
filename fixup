@@ -10,7 +10,7 @@
 # copyright notice and this permission notice appear in all copies.
 #
 
-__version__ = "1.0"
+__version__ = "1.1"
 
 import sys
 import os
@@ -30,6 +30,7 @@ patchMovies1 = [
             "offset": 0x00000000,
             "check": {
                          ff7.Version.EN: 0x0001f8e3,
+                         ff7.Version.FR: 0x0001f8e5,
                          ff7.Version.DE: 0x0001f8de,
                          ff7.Version.US: 0x0001f8e4,
                          ff7.Version.JP: 0x0001f8a8,
@@ -74,6 +75,7 @@ patchMovies1 = [
                 'MOVIE/NIVLSFS.MOV',
                 {
                     ff7.Version.EN: 'MOVIE/JENOVA_E.MOV',
+                    ff7.Version.FR: 'MOVIE/NVLJV_FR.MOV',
                     ff7.Version.DE: 'MOVIE/NVLJV_GM.MOV',
                     ff7.Version.US: 'MOVIE/JENOVA_E.MOV',
                     ff7.Version.JP: 'MOVIE/NIVLJNV.MOV',
@@ -96,6 +98,7 @@ patchMovies1 = [
                 'MOVIE/CAR_1209.STR',
                 {
                     ff7.Version.EN: 'MOVIE/OPENINGE.MOV',
+                    ff7.Version.FR: 'MOVIE/OPENINGE.MOV',
                     ff7.Version.DE: 'MOVIE/OPENINGE.MOV',
                     ff7.Version.US: 'MOVIE/OPENINGE.MOV',
                     ff7.Version.JP: 'MOVIE/OPENING.MOV',
@@ -113,6 +116,7 @@ patchMovies2 = [
             "offset": 0x00000000,
             "check": {
                          ff7.Version.EN: 0x0001f8e3,
+                         ff7.Version.FR: 0x0001f8e5,
                          ff7.Version.DE: 0x0001f8de,
                          ff7.Version.US: 0x0001f8e4,
                          ff7.Version.JP: 0x0001f8a8,
@@ -193,6 +197,7 @@ patchMovies3 = [
             "offset": 0x00000000,
             "check": {
                          ff7.Version.EN: 0x0001f8e3,
+                         ff7.Version.FR: 0x0001f8e5,
                          ff7.Version.DE: 0x0001f8de,
                          ff7.Version.US: 0x0001f8e4,
                          ff7.Version.JP: 0x0001f8a8,
@@ -227,6 +232,7 @@ patchMovies3 = [
                 'MOVIE/ENDING01.MOV',
                 {
                     ff7.Version.EN: 'MOVIE/ENDING3E.MOV',
+                    ff7.Version.FR: 'MOVIE/ENDING3E.MOV',
                     ff7.Version.DE: 'MOVIE/ENDING3E.MOV',
                     ff7.Version.US: 'MOVIE/ENDING3E.MOV',
                     ff7.Version.JP: 'MOVIE/ENDING03.MOV',
@@ -235,6 +241,7 @@ patchMovies3 = [
                 'MOVIE/WHITE2.BIN',
                 {
                     ff7.Version.EN: 'MOVIE/ENDING2E.MOV',
+                    ff7.Version.FR: 'MOVIE/ENDING2F.MOV',
                     ff7.Version.DE: 'MOVIE/ENDING2G.MOV',
                     ff7.Version.US: 'MOVIE/ENDING2E.MOV',
                     ff7.Version.JP: 'MOVIE/ENDING02.MOV',
@@ -300,8 +307,8 @@ patchChocoboEN = [
 ]
 
 
-# Data files of the Chocobo Racing minigame, German PAL version
-patchChocoboDE = [
+# Data files of the Chocobo Racing minigame, French PAL version
+patchChocoboFR = [
     ("MINI/CHOCOBO.BIN", [
         {
             "offset": 0x00002eb8,
@@ -389,6 +396,10 @@ patchChocoboDE = [
         },
     ]),
 ]
+
+
+# Data files of the Chocobo Racing minigame, German PAL version
+patchChocoboDE = patchChocoboFR
 
 
 # Data files of the Chocobo Racing minigame, US version
@@ -545,6 +556,7 @@ patchFiles = [
         {
             "offset": {
                           ff7.Version.EN: 0x0003a5b8,
+                          ff7.Version.FR: 0x0003a5b8,
                           ff7.Version.DE: 0x0003a5b8,
                           ff7.Version.US: 0x0003a5b8,
                           ff7.Version.JP: 0x00030258,
@@ -2914,18 +2926,21 @@ patchFiles = [
                 'FIELD/ZTRUCK.BSX',
                 {
                     ff7.Version.EN: 'FIELD/FRCYO2.DAT',
+                    ff7.Version.FR: 'FIELD/FRCYO2.DAT',
                     ff7.Version.DE: 'FIELD/FRCYO2.DAT',
                     ff7.Version.US: '',
                     ff7.Version.JP: '',
                 },
                 {
                     ff7.Version.EN: 'FIELD/FRCYO2.MIM',
+                    ff7.Version.FR: 'FIELD/FRCYO2.MIM',
                     ff7.Version.DE: 'FIELD/FRCYO2.MIM',
                     ff7.Version.US: '',
                     ff7.Version.JP: '',
                 },
                 {
                     ff7.Version.EN: 'FIELD/FRCYO2.BSX',
+                    ff7.Version.FR: 'FIELD/FRCYO2.BSX',
                     ff7.Version.DE: 'FIELD/FRCYO2.BSX',
                     ff7.Version.US: '',
                     ff7.Version.JP: '',
@@ -2936,12 +2951,14 @@ patchFiles = [
         {
             "offset": {
                           ff7.Version.EN: 0x0003f0a4,
+                          ff7.Version.FR: 0x0003f0a4,
                           ff7.Version.DE: 0x0003f0a4,
                           ff7.Version.US: 0x0003f08c,
                           ff7.Version.JP: 0x00034d2c,
                       },
             "check": {
                          ff7.Version.EN: 0x0001efe7,
+                         ff7.Version.FR: 0x0001f023,
                          ff7.Version.DE: 0x0001f022,
                          ff7.Version.US: 0x0001ef79,
                          ff7.Version.JP: 0x0001eee8,
@@ -2966,12 +2983,14 @@ patchFiles = [
         {
             "offset": {
                           ff7.Version.EN: 0x000015a8,
+                          ff7.Version.FR: 0x000015a8,
                           ff7.Version.DE: 0x000015a8,
                           ff7.Version.US: 0x00001580,
                           ff7.Version.JP: 0x00001580,
                       },
             "check": {
                          ff7.Version.EN: 0x0001f481,
+                         ff7.Version.FR: 0x0001f468,
                          ff7.Version.DE: 0x0001f466,
                          ff7.Version.US: 0x0001f481,
                          ff7.Version.JP: 0x0001f481,
@@ -2979,18 +2998,21 @@ patchFiles = [
             "files": [
                 {
                     ff7.Version.EN: 'MOVIE/DISK1.LZS',
+                    ff7.Version.FR: 'MOVIE/F_DISK1.LZS',
                     ff7.Version.DE: 'MOVIE/G_DISK1.LZS',
                     ff7.Version.US: 'MOVIE/DISK1.LZS',
                     ff7.Version.JP: 'MOVIE/DISK1.LZS',
                 },
                 {
                     ff7.Version.EN: 'MOVIE/DISK2.LZS',
+                    ff7.Version.FR: 'MOVIE/F_DISK2.LZS',
                     ff7.Version.DE: 'MOVIE/G_DISK2.LZS',
                     ff7.Version.US: 'MOVIE/DISK2.LZS',
                     ff7.Version.JP: 'MOVIE/DISK2.LZS',
                 },
                 {
                     ff7.Version.EN: 'MOVIE/DISK3.LZS',
+                    ff7.Version.FR: 'MOVIE/F_DISK3.LZS',
                     ff7.Version.DE: 'MOVIE/G_DISK3.LZS',
                     ff7.Version.US: 'MOVIE/DISK3.LZS',
                     ff7.Version.JP: 'MOVIE/DISK3.LZS',
@@ -3009,6 +3031,7 @@ patchFiles = [
         {
             "offset": {
                           ff7.Version.EN: 0x00000d54,
+                          ff7.Version.FR: 0x00000d50,
                           ff7.Version.DE: 0x00000d50,
                           ff7.Version.US: 0x00000d40,
                           ff7.Version.JP: 0x00000d40,
@@ -3019,6 +3042,7 @@ patchFiles = [
         {
             "offset": {
                           ff7.Version.EN: 0x00000e40,
+                          ff7.Version.FR: 0x00000e3c,
                           ff7.Version.DE: 0x00000e3c,
                           ff7.Version.US: 0x00000e18,
                           ff7.Version.JP: 0x00000e18,
@@ -3026,6 +3050,7 @@ patchFiles = [
             "check": 0x3c040001,
             "coderef": {
                            ff7.Version.EN: 'MOVIE/OVER.LZS',
+                           ff7.Version.FR: 'MOVIE/F_OVER.LZS',
                            ff7.Version.DE: 'MOVIE/G_OVER.LZS',
                            ff7.Version.US: 'MOVIE/OVER.LZS',
                            ff7.Version.JP: 'MOVIE/OVER.LZS',
@@ -3038,12 +3063,14 @@ patchFiles = [
         {
             "offset": {
                           ff7.Version.EN: 0x00006774,
+                          ff7.Version.FR: 0x00006474,
                           ff7.Version.DE: 0x00006474,
                           ff7.Version.US: 0x00006398,
                           ff7.Version.JP: 0x00005698,
                       },
             "check": {
                          ff7.Version.EN: 0x0001f739,
+                         ff7.Version.FR: 0x0001f729,
                          ff7.Version.DE: 0x0001f727,
                          ff7.Version.US: 0x0001f739,
                          ff7.Version.JP: 0x0001f739,
@@ -3061,12 +3088,14 @@ patchFiles = [
         {
             "offset": {
                           ff7.Version.EN: 0x0001e7d8,
+                          ff7.Version.FR: 0x0001e834,
                           ff7.Version.DE: 0x0001e834,
                           ff7.Version.US: 0x0001e7d8,
                           ff7.Version.JP: 0x0001e7d8,
                       },
             "check": {
                          ff7.Version.EN: 0x00000645,
+                         ff7.Version.FR: 0x00000645,
                          ff7.Version.DE: 0x00000645,
                          ff7.Version.US: 0x00000645,
                          ff7.Version.JP: 0x00000639,
@@ -3088,6 +3117,7 @@ patchFiles = [
         {
             "offset": {
                           ff7.Version.EN: 0x0001424c,
+                          ff7.Version.FR: 0x0001424c,
                           ff7.Version.DE: 0x0001424c,
                           ff7.Version.US: 0x00014238,
                           ff7.Version.JP: 0x00014238,
@@ -3106,6 +3136,7 @@ patchFiles = [
         {
             "offset": {
                           ff7.Version.EN: 0x00008328,
+                          ff7.Version.FR: 0x00008328,
                           ff7.Version.DE: 0x00008328,
                           ff7.Version.US: 0x00008310,
                           ff7.Version.JP: 0x00008310,
@@ -3125,12 +3156,14 @@ patchFiles = [
         {
             "offset": {
                           ff7.Version.EN: 0x0001fe10,
+                          ff7.Version.FR: 0x0001fe10,
                           ff7.Version.DE: 0x0001fe3c,
                           ff7.Version.US: 0x0001fd74,
                           ff7.Version.JP: 0x0001fd74,
                       },
             "check": {
                          ff7.Version.EN: 0x000004f7,
+                         ff7.Version.FR: 0x000004f7,
                          ff7.Version.DE: 0x000004f7,
                          ff7.Version.US: 0x000004f7,
                          ff7.Version.JP: 0x000004f9,
@@ -3139,6 +3172,7 @@ patchFiles = [
                 'MINI/BGM.LZS',
                 {
                     ff7.Version.EN: 'MINI/TIM.LZS',
+                    ff7.Version.FR: 'MINI/TIMFR.LZS',
                     ff7.Version.DE: 'MINI/TIMGM.LZS',
                     ff7.Version.US: 'MINI/TIM.LZS',
                     ff7.Version.JP: 'MINI/TIM.LZS',
@@ -3153,12 +3187,14 @@ patchFiles = [
         {
             "offset": {
                           ff7.Version.EN: 0x000182b0,
+                          ff7.Version.FR: 0x000182bc,
                           ff7.Version.DE: 0x000182d4,
                           ff7.Version.US: 0x00018260,
                           ff7.Version.JP: 0x00018218,
                       },
             "check": {
                          ff7.Version.EN: 0x0000059c,
+                         ff7.Version.FR: 0x0000059c,
                          ff7.Version.DE: 0x0000059c,
                          ff7.Version.US: 0x0000059c,
                          ff7.Version.JP: 0x0000059a,
@@ -3167,6 +3203,7 @@ patchFiles = [
                 'MINI/BGM2.LZS',
                 {
                     ff7.Version.EN: 'MINI/TIM2.LZS',
+                    ff7.Version.FR: 'MINI/TIM2FR.LZS',
                     ff7.Version.DE: 'MINI/TIM2GM.LZS',
                     ff7.Version.US: 'MINI/TIM2.LZS',
                     ff7.Version.JP: 'MINI/TIM2.LZS',
@@ -3181,6 +3218,7 @@ patchFiles = [
         {
             "offset": {
                           ff7.Version.EN: 0x0000d344,
+                          ff7.Version.FR: 0x0000d344,
                           ff7.Version.DE: 0x0000d344,
                           ff7.Version.US: 0x0000d330,
                           ff7.Version.JP: 0x0000d330,
@@ -3191,12 +3229,14 @@ patchFiles = [
                 'MINI/SENSUI.SND',
                 {
                     ff7.Version.EN: 'MINI/SEN013E.TIZ',
+                    ff7.Version.FR: 'MINI/SEN013F.TIZ',
                     ff7.Version.DE: 'MINI/SEN013G.TIZ',
                     ff7.Version.US: 'MINI/SEN013E.TIZ',
                     ff7.Version.JP: 'MINI/SEN013E.TIZ',
                 },
                 {
                     ff7.Version.EN: 'MINI/SEN003E.TIZ',
+                    ff7.Version.FR: 'MINI/SEN003F.TIZ',
                     ff7.Version.DE: 'MINI/SEN003G.TIZ',
                     ff7.Version.US: 'MINI/SEN003E.TIZ',
                     ff7.Version.JP: 'MINI/SEN003E.TIZ',
@@ -3216,6 +3256,7 @@ patchFiles = [
         {
             "offset": {
                           ff7.Version.EN: 0x000273a8,
+                          ff7.Version.FR: 0x000273a8,
                           ff7.Version.DE: 0x000273a8,
                           ff7.Version.US: 0x000273e4,
                           ff7.Version.JP: 0x000273b4,
@@ -3272,6 +3313,7 @@ patchFiles = [
         {
             "offset": {
                           ff7.Version.EN: 0x00047d64,
+                          ff7.Version.FR: 0x00047d64,
                           ff7.Version.DE: 0x00047d68,
                           ff7.Version.US: 0x00047d50,
                           ff7.Version.JP: 0x000482d8,
@@ -3817,6 +3859,7 @@ patchFiles = [
         {
             "offset": {
                           ff7.Version.EN: 0x0004ea5c,
+                          ff7.Version.FR: 0x0004ea5c,
                           ff7.Version.DE: 0x0004ea60,
                           ff7.Version.US: 0x0004ea48,
                           ff7.Version.JP: 0x0004efd0,
@@ -3836,6 +3879,7 @@ patchFiles = [
         {
             "offset": {
                           ff7.Version.EN: 0x0004ebcc,
+                          ff7.Version.FR: 0x0004ebcc,
                           ff7.Version.DE: 0x0004ebd0,
                           ff7.Version.US: 0x0004ebb8,
                           ff7.Version.JP: 0x0004f140,
@@ -4206,6 +4250,7 @@ patchFiles = [
         {
             "offset": {
                           ff7.Version.EN: 0x000393c8,
+                          ff7.Version.FR: 0x000393f8,
                           ff7.Version.DE: 0x000393e4,
                           ff7.Version.US: 0x000394fc,
                           ff7.Version.JP: 0x00039334,
@@ -4233,6 +4278,7 @@ patchFiles = [
         {
             "offset": {
                           ff7.Version.EN: 0x00039634,
+                          ff7.Version.FR: 0x00039664,
                           ff7.Version.DE: 0x00039650,
                           ff7.Version.US: 0x00039768,
                           ff7.Version.JP: 0x000395a0,
@@ -4276,6 +4322,7 @@ patchFiles = [
         {
             "offset": {
                           ff7.Version.EN: 0x00004e34,
+                          ff7.Version.FR: 0x00004e34,
                           ff7.Version.DE: 0x00004e34,
                           ff7.Version.US: 0x00004e18,
                           ff7.Version.JP: 0x00004df4,
@@ -4487,7 +4534,7 @@ try:
     version, discNumber, execFileName = ff7.checkDisc(image)
     image.close()
 
-    if version not in (ff7.Version.EN, ff7.Version.DE, ff7.Version.US, ff7.Version.JP):
+    if version not in (ff7.Version.EN, ff7.Version.FR, ff7.Version.DE, ff7.Version.US, ff7.Version.JP):
         raise EnvironmentError, "Sorry, this release of the game is not supported at the moment"
 
     # Process all files which need to be patched
@@ -4503,6 +4550,8 @@ try:
 
     if version == ff7.Version.EN:
         patchChocobo = patchChocoboEN
+    elif version == ff7.Version.FR:
+        patchChocobo = patchChocoboFR
     elif version == ff7.Version.DE:
         patchChocobo = patchChocoboDE
     elif version == ff7.Version.US:

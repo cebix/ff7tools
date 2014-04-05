@@ -47,6 +47,8 @@ def extractFiles(discPath, transPath, version, execFileName):
     # Get the file list
     if version == ff7.Version.EN:
         files = ff7.data.execFileData_EN
+    elif version == ff7.Version.FR:
+        files = ff7.data.execFileData_FR
     elif version == ff7.Version.DE:
         files = ff7.data.execFileData_DE
     elif version == ff7.Version.US:
@@ -96,6 +98,8 @@ def extractSnobo2(discPath, transPath, version):
     # Get the string list
     if version == ff7.Version.EN:
         offsets = ff7.data.snobo2Data_EN
+    elif version == ff7.Version.FR:
+        offsets = ff7.data.snobo2Data_FR
     elif version == ff7.Version.DE:
         offsets = ff7.data.snobo2Data_DE
     elif version == ff7.Version.US:
@@ -158,6 +162,8 @@ def extractWorld(discPath, transPath, version):
 
     if version == ff7.Version.EN:
         listBase = ff7.data.worldStringListOffset_EN
+    elif version == ff7.Version.FR:
+        listBase = ff7.data.worldStringListOffset_FR
     elif version == ff7.Version.DE:
         listBase = ff7.data.worldStringListOffset_DE
     elif version == ff7.Version.US:

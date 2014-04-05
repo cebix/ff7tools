@@ -142,6 +142,8 @@ def checkDisc(discPath):
 
     if execFileName in ["SCES_008.67", "SCES_108.67", "SCES_208.67"]:
         version = Version.EN
+    elif execFileName in ["SCES_008.68", "SCES_108.68", "SCES_208.68"]:
+        version = Version.FR
     elif execFileName in ["SCES_008.69", "SCES_108.69", "SCES_208.69"]:
         version = Version.DE
     elif execFileName in ["SCUS_941.63", "SCUS_941.64", "SCUS_941.65"]:
