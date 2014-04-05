@@ -99,10 +99,10 @@ class MapData:
 # Field map event section
 class EventSection:
 
-    # Create a ScriptSection object from binary data.
+    # Create an EventSection object from binary data.
     def __init__(self, data):
 
-        # Parse the script section header
+        # Parse the section header
         headerSize = 32
         self.version, numActors, self.numModels, stringTableOffset, numExtra, self.scale, self.creator, self.mapName = struct.unpack_from("<HBBHHH6x8s8s", data)
         offset = headerSize
@@ -434,7 +434,7 @@ Op = _enum(
 #
 # Terminology:
 # - An "address" is the offset of a script instruction relative to the start
-#   of the script section of the field map.
+#   of the event section of the field map.
 # - An "offset" refers to a relative location within the script code block,
 #   and is used to refer to script code bytes within the bytearray which
 #   holds the script code.
@@ -442,7 +442,7 @@ Op = _enum(
 #   instruction with offset 0.
 #
 # For example, if the script code block starts at byte 0x1234 within the
-# script section, then the first instruction of the script is at address
+# event section, then the first instruction of the script is at address
 # 0x1234, offset 0.
 #
 

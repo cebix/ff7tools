@@ -573,7 +573,7 @@ def clamp(v):
 
 
 # Transform and encode an 8x8 block to the given output bitstream,
-# returning the number of codes needed.
+# returning the number of MDEC runlevel codes needed.
 def encodeMacroblock(block, frameQ, outStream):
     numCodes = 0
 
@@ -733,8 +733,8 @@ def processFrame(inFrame, width, height, subtitler):
                 numCodes += encodeMacroblock(subtitler.getBlock(x    , y + 8), frameQ, outStream)
                 numCodes += encodeMacroblock(subtitler.getBlock(x + 8, y + 8), frameQ, outStream)
 
-    # Copy frame end marker (01111111110) and finish frame
-    outStream.write(inStream.read(11), 11)
+    # Copy end-of-frame marker (0111111111 = DC coefficient 511) and finish frame
+    outStream.write(inStream.read(10), 10)
     outStream.flush()
 
     outFrameSize = (outStream.offset + 3) & ~3  # round up to 32-bit boundary
