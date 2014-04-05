@@ -10,7 +10,7 @@
 # copyright notice and this permission notice appear in all copies.
 #
 
-__version__ = "1.0"
+__version__ = "1.1"
 
 import sys
 import os
@@ -45,7 +45,9 @@ def extractFiles(discPath, transPath, version, execFileName):
     print "Dumping executables..."
 
     # Get the file list
-    if version == ff7.Version.DE:
+    if version == ff7.Version.EN:
+        files = ff7.data.execFileData_EN
+    elif version == ff7.Version.DE:
         files = ff7.data.execFileData_DE
     elif version == ff7.Version.US:
         files = ff7.data.execFileData_US
@@ -92,7 +94,9 @@ def extractSnobo2(discPath, transPath, version):
     print "Dumping snowboard minigame..."
 
     # Get the string list
-    if version == ff7.Version.DE:
+    if version == ff7.Version.EN:
+        offsets = ff7.data.snobo2Data_EN
+    elif version == ff7.Version.DE:
         offsets = ff7.data.snobo2Data_DE
     elif version == ff7.Version.US:
         offsets = ff7.data.snobo2Data_US
@@ -152,7 +156,9 @@ def extractKernel(discPath, transPath, version):
 def extractWorld(discPath, transPath, version):
     print "Dumping world maps..."
 
-    if version == ff7.Version.DE:
+    if version == ff7.Version.EN:
+        listBase = ff7.data.worldStringListOffset_EN
+    elif version == ff7.Version.DE:
         listBase = ff7.data.worldStringListOffset_DE
     elif version == ff7.Version.US:
         listBase = ff7.data.worldStringListOffset_US

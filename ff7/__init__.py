@@ -9,12 +9,11 @@
 #
 
 __author__ = "Christian Bauer <www.cebix.net>"
-__version__ = "1.0"
+__version__ = "1.1"
 
 
 import os
 import re
-import cdio
 import iso9660
 import gzip
 import zlib
@@ -38,9 +37,12 @@ def _enum(**enums):
 
 # Supported game versions
 Version = _enum(
-    DE = 1,  # German PAL release
-    US = 2,  # US release
-    JP = 3   # Japanese International release
+    EN = 1,  # English PAL release (SCES-00867)
+    FR = 2,  # French PAL release (SCES-00868)
+    DE = 3,  # German PAL release (SCES-00869)
+    ES = 4,  # Spanish PAL release (SCES-00900)
+    US = 5,  # US release (SCUS-94163)
+    JP = 6,  # Japanese International release (SLPS-01057)
 )
 
 
@@ -138,7 +140,9 @@ def checkDisc(discPath):
 
     execFileName = m.group(1)
 
-    if execFileName in ["SCES_008.69", "SCES_108.69", "SCES_208.69"]:
+    if execFileName in ["SCES_008.67", "SCES_108.67", "SCES_208.67"]:
+        version = Version.EN
+    elif execFileName in ["SCES_008.69", "SCES_108.69", "SCES_208.69"]:
         version = Version.DE
     elif execFileName in ["SCUS_941.63", "SCUS_941.64", "SCUS_941.65"]:
         version = Version.US

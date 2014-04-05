@@ -41,7 +41,86 @@ kernelStringData = [
 # Translatable strings embedded in executable files
 #
 
-# German version
+# English PAL version
+execFileData_EN = [
+
+    # discDir, discFileName, offsetList
+    ("", "<EXEC>", [
+        # offset, stringSize, numStrings, jpEnc, transDir, transFileName
+        (0x39914, 0x0c, 23, False, "menu", "main.txt"),
+        (0x39a5c, 0x08,  3, True,  "menu", "main2.txt"),  # "HP"/"MP"/"LV" texts use the 8x8 font with Japanese encoding
+    ]),
+    ("MENU", "CNFGMENU.MNU", [
+        (0x1ae8, 0x30, 51, False, "menu", "config.txt"),
+    ]),
+    ("MENU", "EQIPMENU.MNU", [
+        (0x82a4, 0x0c, 23, False, "menu", "equip_attr_short.txt"),
+        (0x83f8, 0x0a,  9, False, "menu", "element.txt"),
+        (0x8454, 0x24,  4, False, "menu", "remove.txt"),
+        (0x84e4, 0x14,  6, False, "menu", "materia.txt"),
+        (0x8570, 0x14, 35, False, "menu", "materia2.txt"),
+    ]),
+    ("MENU", "FORMMENU.MNU", [
+        (0x1cfc, 0x26,  6, False, "menu", "form1.txt"),
+        (0x1de0, 0x16, 26, False, "menu", "form2.txt"),
+    ]),
+    ("MENU", "ITEMMENU.MNU", [
+        (0x3260, 0x22, 25, False, "menu", "lv4_limit.txt"),
+        (0x3cd4, 0x0c, 11, False, "menu", "item.txt"),
+    ]),
+    ("MENU", "LIMTMENU.MNU", [
+        (0x2128, 0x24, 14, False, "menu", "limit.txt"),
+    ]),
+    ("MENU", "MGICMENU.MNU", [
+        (0x2934, 0x14, 14, False, "menu", "magic.txt"),
+    ]),
+    ("MENU", "NAMEMENU.MNU", [
+        (0x8e6c, 0x0c, 10, False, "menu", "default_name.txt"),
+        (0x8ee4, 0x08,  8, False, "menu", "name.txt"),
+    ]),
+    ("MENU", "SAVEMENU.MNU", [
+        ( 0xeedc, 0x08,  1, False, "menu", "save1.txt"),
+        (0x12cfc, 0x24, 38, False, "menu", "save2.txt"),
+        (0x13260, 0x30, 20, False, "menu", "save3.txt"),
+        (0x13684, 0x06,  1, False, "menu", "save4.txt"),
+    ]),
+    ("MENU", "SHOPMENU.MNU", [
+        (0x42d4, 0x14,  9, False, "menu", "shop_type.txt"),
+        (0x4388, 0x2e,  8, False, "menu", "shop_greeting1.txt"),
+        (0x4554, 0x2e,  8, False, "menu", "shop_greeting2.txt"),
+        (0x6160, 0x0a,  9, False, "menu", "element.txt"),
+        (0x61bc, 0x24,  4, False, "menu", "remove.txt"),
+        (0x624c, 0x14,  6, False, "menu", "materia.txt"),
+        (0x62d8, 0x14, 35, False, "menu", "materia2.txt"),
+        (0x6598, 0x16, 23, False, "menu", "equip_attr.txt"),
+        (0x6798, 0x14, 10, False, "menu", "shop.txt"),
+    ]),
+    ("MENU", "STATMENU.MNU", [
+        (0x196c, 0x0a,  9, False, "menu", "element.txt"),
+        (0x19c8, 0x14, 27, False, "menu", "status.txt"),
+        (0x1be4, 0x0f, 27, False, "menu", "stat.txt"),
+    ]),
+    ("BATTLE", "BATTLE.X", [
+        (0x5315c, 0x08,  1, False, "battle", "pause.txt"),
+        (0x53198, 0x0a, 32, False, "battle", "status.txt"),
+        (0x5330c, 0x1c,  1, False, "battle", "gil1.txt"),
+        (0x53328, 0x04,  1, False, "battle", "gil2.txt"),
+        (0x5332c, 0x08,  1, False, "battle", "gil3.txt"),
+        (0x53334, 0x0c,  1, False, "battle", "gil4.txt"),
+        (0x53480, 0x0c,  1, False, "battle", "arena1.txt"),
+        (0x5348c, 0x18,  1, False, "battle", "arena2.txt"),
+        (0x534a4, 0x16,  5, False, "battle", "arena3.txt"),
+        (0x5351c, 0x20, 24, False, "battle", "arena_handicap.txt"),
+        (0x5383c, 0x22,  3, False, "battle", "worried.txt"),
+    ]),
+    ("MINI", "CHOCOBO.BIN", [
+        (0x122dc, 0x06,  1, False, "chocobo", "black.txt"),
+        (0x12400, 0x10, 24, False, "chocobo", "prices.txt"),
+        (0x12580, 0x08, 44, False, "chocobo", "names.txt"),
+    ]),
+]
+
+# German PAL version
 execFileData_DE = [
 
     # discDir, discFileName, offsetList
@@ -181,7 +260,7 @@ execFileData_US = [
     ("BATTLE", "BATTLE.X", [
         (0x53148, 0x08,  1, False, "battle", "pause.txt"),
         (0x53184, 0x0a, 32, False, "battle", "status.txt"),
-        (0x53300, 0x1c,  1, False, "battle", "gil1.txt"),
+        (0x532f8, 0x1c,  1, False, "battle", "gil1.txt"),
         (0x53314, 0x04,  1, False, "battle", "gil2.txt"),
         (0x53318, 0x08,  1, False, "battle", "gil3.txt"),
         (0x53320, 0x0c,  1, False, "battle", "gil4.txt"),
@@ -281,7 +360,42 @@ execFileData_JP = [
 # Translatable strings embedded in snowboard minigame (SNOBO2)
 #
 
-# German version
+# English PAL version
+snobo2Data_EN = [
+    # offset, stringSize
+    (0x354, 8),
+    (0x35c, 12),
+    (0x368, 8),
+    (0x370, 12),
+    (0x37c, 8),
+    (0x384, 8),
+    (0x38c, 8),
+    (0x394, 8),
+    (0x39c, 4),
+    (0x3a0, 8),
+    (0x3a8, 8),
+    (0x3b0, 8),
+    (0x3b8, 8),
+    (0x3c0, 4),
+    (0x3c4, 8),
+    (0x3cc, 8),
+    (0x3d4, 8),
+    (0x3dc, 8),
+    (0x3e4, 12),
+    (0x3f0, 8),
+    (0x3f8, 8),
+    (0x400, 8),
+    (0x408, 8),
+    (0x410, 8),
+    (0x418, 8),
+    (0x420, 8),
+    (0x428, 8),
+    (0x430, 8),
+    (0x438, 8),
+    (0x440, 5),
+]
+
+# German PAL version
 snobo2Data_DE = [
     # offset, stringSize
     (0x350, 8),
@@ -316,50 +430,19 @@ snobo2Data_DE = [
     (0x434, 3),
 ]
 
-# US version
-snobo2Data_US = [
-    # offset, stringSize
-    (0x354, 8),
-    (0x35c, 12),
-    (0x368, 8),
-    (0x370, 12),
-    (0x37c, 8),
-    (0x384, 8),
-    (0x38c, 8),
-    (0x394, 8),
-    (0x39c, 4),
-    (0x3a0, 8),
-    (0x3a8, 8),
-    (0x3b0, 8),
-    (0x3b8, 8),
-    (0x3c0, 4),
-    (0x3c4, 8),
-    (0x3cc, 8),
-    (0x3d4, 8),
-    (0x3dc, 8),
-    (0x3e4, 12),
-    (0x3f0, 8),
-    (0x3f8, 8),
-    (0x400, 8),
-    (0x408, 8),
-    (0x410, 8),
-    (0x418, 8),
-    (0x420, 8),
-    (0x428, 8),
-    (0x430, 8),
-    (0x438, 8),
-    (0x440, 8),
-]
-
-# Japanese version uses English text
-snobo2Data_JP = snobo2Data_US
+# US and Japanese versions use English text
+snobo2Data_US = snobo2Data_EN
+snobo2Data_JP = snobo2Data_EN
 
 
 #
 # World module string list offset and size
 #
 
-# German version
+# English PAL version
+worldStringListOffset_EN = 0x1e5b4
+
+# German PAL version
 worldStringListOffset_DE = 0x1e5b4
 
 # US version
@@ -402,7 +485,7 @@ worldStringListSize = 0x1000
 # - WM*
 # - XMVTES
 #
-# Note: The FRCYO2 map (Chocobo Farm disc 2/3) is only present in PAL
+# Note: The FRCYO2 map (Chocobo stable disc 2/3) is only present in PAL
 # versions of the game.
 #
 
