@@ -17,6 +17,7 @@ import os
 import struct
 import shutil
 import re
+import unicodedata
 
 import ff7
 from ff7.field import Op
@@ -115,6 +116,65 @@ def retrieveMetrics(discPath):
     return bytearray(metricsFile.getData())
 
 
+# Recalculate sorting table in item menu module.
+def calcItemTable(data, version):
+    if version == ff7.Version.EN:
+        offset = ff7.data.itemTableOffset_EN
+    elif version == ff7.Version.FR:
+        offset = ff7.data.itemTableOffset_FR
+    elif version == ff7.Version.DE:
+        offset = ff7.data.itemTableOffset_DE
+    elif version == ff7.Version.ES:
+        offset = ff7.data.itemTableOffset_ES
+    elif version == ff7.Version.US:
+        offset = ff7.data.itemTableOffset_US
+    elif version == ff7.Version.JP:
+        offset = ff7.data.itemTableOffset_JP
+    else:
+        return data
+
+    # Retrieve item names
+    l = retrieveTrans(transPath, "kernel", "item.txt")
+    l += retrieveTrans(transPath, "kernel", "weapon.txt")
+    l += retrieveTrans(transPath, "kernel", "armor.txt")
+    l += retrieveTrans(transPath, "kernel", "accessory.txt")
+
+    assert len(l) == 320
+
+    # Convert to list of (name, index) tuples
+    l = [(l[i], i) for i in xrange(len(l))]
+
+    # Sort in a roughly language-aware alphabetical order without messing
+    # with the locale settings (TODO: this doesn't work for Japanese)
+    def itemKey(item):
+        s, idx = item
+
+        # Place empty entries at the end, keeping their relative order
+        if not s:
+            return u"\ufffd %03d" % idx
+
+        # Strip diacritics and remove non-ascii characters
+        s = unicodedata.normalize("NFKD", s)
+        s = s.replace(u'\u00df', u"ss")  # German sharp s -> ss
+        s = s.encode("ascii", "ignore")
+
+        # Case-insensitive
+        return s.lower()
+
+    l.sort(key = itemKey)
+
+    # Create the table, which maps the index numbers of items as they appear
+    # in the kernel string lists to their position in the sorted list
+    table = [0] * len(l)
+
+    for i in xrange(len(l)):
+        idx = l[i][1]
+        table[idx] = i
+
+    # Replace the table in the module
+    return data[:offset] + struct.pack("<%dH" % len(l), *table) + data[offset + len(l) * 2:]
+
+
 # Translate strings in executable files.
 def translateFiles(transPath, discPath, execFileName, version):
     print "Translating executables..."
@@ -179,6 +239,10 @@ def translateFiles(transPath, discPath, execFileName, version):
 
                 data = data[:offset] + rawString + data[offset + stringSize:]
                 offset += stringSize
+
+            # Recalculate sorting table in item menu
+            if discFileName == "ITEMMENU.MNU":
+                data = calcItemTable(data, version)
 
         # Gzipped? Then recompress it
         if gzipped:
@@ -1086,9 +1150,9 @@ try:
     version, discNumber, execFileName = ff7.checkDisc(discPath)
 
     # Insert everything
+    translateKernel(transPath, discPath, version)
     translateFiles(transPath, discPath, execFileName, version)
     translateSnobo2(transPath, discPath, version)
-    translateKernel(transPath, discPath, version)
 
     if fixFont:  # change metrics before translating the fields
         patchFont(discPath, version)

@@ -685,6 +685,29 @@ worldStringListSize = 0x1000
 
 
 #
+# Offset of sorting table in ITEMMENU.MNU
+#
+
+# English PAL version
+itemTableOffset_EN = 0x35b4
+
+# French PAL version
+itemTableOffset_FR = 0x3838
+
+# German PAL version
+itemTableOffset_DE = 0x3638
+
+# Spanish PAL version
+itemTableOffset_ES = 0x3608
+
+# US version
+itemTableOffset_US = 0x35b4
+
+# Japanese version
+itemTableOffset_JP = 0x37b8
+
+
+#
 # List of field maps, excluding the following invalid/special ones
 # which have no translatable strings:
 # - BLACKBGA

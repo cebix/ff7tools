@@ -429,9 +429,9 @@ try:
         sys.exit(1)
 
     # Extract everything
+    extractKernel(discPath, transPath, version)
     extractFiles(discPath, transPath, version, execFileName)
     extractSnobo2(discPath, transPath, version)
-    extractKernel(discPath, transPath, version)
     extractWorld(discPath, transPath, version)
     extractScenes(discPath, transPath, version)
     extractFields(discPath, transPath, version)
