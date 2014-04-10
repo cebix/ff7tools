@@ -1,0 +1,7 @@
+V1.1 (2014-04-10)
+ - added support for the English, French, and Spanish PAL releases of the
+   game
+ - added recalculation of sort-by-name table in item menu to 'trans'
+
+V1.0 (2014-03-29)
+ - first public release

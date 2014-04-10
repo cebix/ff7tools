@@ -1,4 +1,4 @@
-FF7Tools V1.0
+FF7Tools V1.1
 =============
 
 FF7Tools is a suite of command-line translation and hacking tools for the
@@ -49,6 +49,9 @@ dependencies:
  * Pillow >= 2.2.1 (https://pypi.python.org/pypi/Pillow/)
    Used by the 'tim2png' and 'subending' tools.
 
+ * NumPy >= 1.8.0 (http://www.numpy.org/)
+   Used by the 'subending' tool.
+
  * PSXImager >= 1.0 (https://github.com/cebix/psximager)
    Used by the 'fixup' tool.
 
@@ -85,7 +88,10 @@ may not work with other regional releases:
 
  * Final Fantasy VII International (Japanese, SLPS-01057)
  * Final Fantasy VII US (SCUS-94163)
+ * Final Fantasy VII PAL English (SCES-00867)
+ * Final Fantasy VII PAL French (SCES-00868)
  * Final Fantasy VII PAL German (SCES-00869)
+ * Final Fantasy VII PAL Spanish (SCES-00900)
 
 The 'trans' tool does not work with the Japanese version of the game because
 Japanese kanji encoding is not yet implemented. Dumping Japanese text with
@@ -670,8 +676,8 @@ Command-line options of 'trans'
     mostly due to my inefficient implementation of LZSS compression (it
     achieves a marginally better compression ratio than the tools used by
     Squaresoft, though), and excessive script code analysis going on for the
-    field map files (the FRCYO*, LASTMAP, and RCKTIN4 maps are particularly
-    problematic in this respect).
+    field map files (the FRCYO*, LASTMAP, RCKTIN4, and ZCOAL4 maps are
+    particularly problematic in this respect).
 
     The 'untrans' tool usually only needs to be used once, but when doing a
     mod of the game over the course of several weeks, testing and making
