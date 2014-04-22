@@ -9,12 +9,11 @@
 #
 
 __author__ = "Christian Bauer <www.cebix.net>"
-__version__ = "1.1"
+__version__ = "1.2"
 
 
 import os
 import re
-import iso9660
 import gzip
 import zlib
 import struct
@@ -29,6 +28,7 @@ import tutorial
 import scene
 import world
 import data
+import cd
 
 
 def _enum(**enums):
@@ -50,15 +50,7 @@ Version = _enum(
 def _retrieveFileFromImage(image, subDir, fileName):
     filePath = subDir + '/' + fileName
 
-    try:
-        stat = image.stat(filePath + ";1")
-        if stat is None:
-            raise SystemError
-    except SystemError:
-        raise EnvironmentError, "Cannot find '%s' in disc image" % filePath
-
-    data = image.read_data_blocks(stat["LSN"], stat["sec_size"])[1]
-    data = data[:stat["size"]]
+    data = image.readFile(filePath)
 
     f = StringIO.StringIO(data)
     f.name = filePath  # kernel.Archive needs this
@@ -73,7 +65,7 @@ def _retrieveFileFromDir(discPath, subDir, fileName):
 
 # Retrieve a file from the disc directory or image.
 def retrieveFile(discPath, subDir, fileName):
-    if isinstance(discPath, iso9660.ISO9660.FS):
+    if isinstance(discPath, cd.Image):
         return _retrieveFileFromImage(discPath, subDir, fileName)
     else:
         return _retrieveFileFromDir(discPath, subDir, fileName)
@@ -82,11 +74,8 @@ def retrieveFile(discPath, subDir, fileName):
 # Check whether a file exists in a disc image.
 def _fileExistsInImage(image, subDir, fileName):
     try:
-        stat = image.stat(subDir + '/' + fileName + ";1")
-        if stat is not None:
-            return True
-        else:
-            return False
+        image.findExtent(subDir + '/' + fileName)
+        return True
     except:
         return False
 
@@ -99,14 +88,14 @@ def _fileExistsInDir(discPath, subDir, fileName):
 
 # Check whether a file exists in the disc directory or image.
 def fileExists(discPath, subDir, fileName):
-    if isinstance(discPath, iso9660.ISO9660.FS):
+    if isinstance(discPath, cd.Image):
         return _fileExistsInImage(discPath, subDir, fileName)
     else:
         return _fileExistsInDir(discPath, subDir, fileName)
 
 
 # Check the game version, returns the tuple (version, discNumber, execFileName).
-# The 'discPath' can be either a directory name, or an iso9660 FS object.
+# The 'discPath' can be either a directory name, or a cd.Image object.
 def checkDisc(discPath):
 
     # Retrieve the DISKINFO.CNF file

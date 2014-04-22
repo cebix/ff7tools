@@ -1,4 +1,4 @@
-FF7Tools V1.1
+FF7Tools V1.2
 =============
 
 FF7Tools is a suite of command-line translation and hacking tools for the
@@ -43,8 +43,6 @@ The tools are entirely written in Python and have the following
 dependencies:
 
  * Python 2.7
-
- * pycdio >= 0.19 (https://pypi.python.org/pypi/pycdio/)
 
  * Pillow >= 2.2.1 (https://pypi.python.org/pypi/Pillow/)
    Used by the 'tim2png' and 'subending' tools.
@@ -122,8 +120,8 @@ then use the 'trans' tool to reinsert the text into the game files. The
 section "Workflow for translation" below will give you some hints for doing
 this effectively.
 
-The 'untrans' tool extracts text from either a BIN/CUE ISO or raw
-("MODE2/2352") CD image or a local directory (the "game directory")
+The 'untrans' tool extracts text from either a plain ISO or raw
+("MODE2/2352") CD image, or a local directory (the "game directory")
 containing the game files to a newly created "translation directory" which
 contains individual text files for each of the game's fields, menus, etc.
 
@@ -692,7 +690,7 @@ Command-line options of 'trans'
 fixup
 -----
 
-Usage: fixup [OPTION...] <image>[.cue/bin]
+Usage: fixup [OPTION...] <image>[.bin]
   -V, --version                   Display version information and exit
   -?, --help                      Show this help message
 
@@ -703,11 +701,12 @@ a way that the start sector of a file changes, the game will usually crash
 at a certain point because it reads data from the wrong location on the
 disc.
 
-The 'fixup' tool modifies the specified BIN/CUE image file in-place by
-recalculating all LBN file references in the game's code and control files
-to point to the actual locations of the files on the disc. This makes it
-possible to recreate CD images of the game completely from scratch, from a
-hierarchy of files, for example using the PSXImager tools:
+The 'fixup' tool modifies the specified BIN/CUE ISO or "raw" ("MODE2/2352")
+disc image file in-place by recalculating all LBN file references in the
+game's code and control files to point to the actual locations of the files
+on the disc. This makes it possible to recreate CD images of the game
+completely from scratch, from a hierarchy of files, for example using the
+PSXImager tools:
 
  1. Dump the CD image "FF7.bin" to the directory "FF7", creating the catalog
     file "FF7.cat" in the process:
@@ -770,7 +769,7 @@ that we are using the US release of the game as a basis.
  6. Rebuild and relocate the CD image:
 
       psxbuild FF7-US-1
-      fixup FF7-US-1
+      fixup FF7-US-1.bin
 
  7. Repeat steps 1, 2, 5 and 6 for the other two discs of the game. With
     some clever symlinking it is possible to share most of the game files

@@ -10,13 +10,11 @@
 # copyright notice and this permission notice appear in all copies.
 #
 
-__version__ = "1.0"
+__version__ = "1.2"
 
 import sys
 import os
 import shutil
-import cdio
-import iso9660
 
 import ff7
 
@@ -61,7 +59,7 @@ if outputDir is None:
 try:
 
     if os.path.isfile(discPath):
-        discPath = iso9660.ISO9660.FS(discPath, cdio.drivers["BIN/CUE"])
+        discPath = ff7.cd.Image(discPath)
     elif not os.path.isdir(discPath):
         raise EnvironmentError, "'%s' is not a directory or disc image file" % discPath
 

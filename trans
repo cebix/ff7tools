@@ -10,7 +10,7 @@
 # copyright notice and this permission notice appear in all copies.
 #
 
-__version__ = "1.1"
+__version__ = "1.2"
 
 import sys
 import os

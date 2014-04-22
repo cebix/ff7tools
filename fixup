@@ -10,15 +10,13 @@
 # copyright notice and this permission notice appear in all copies.
 #
 
-__version__ = "1.1"
+__version__ = "1.2"
 
 import sys
 import os
 import struct
 import tempfile
 import subprocess
-import cdio
-import iso9660
 
 import ff7
 
@@ -4419,19 +4417,16 @@ def applyPatch(data, patch, image, version):
 
         # Find the file in the image
         try:
-            stat = image.stat(file + ";1")
-            if stat is None:
-                raise SystemError
-        except SystemError:
+            lbn, size = image.findExtent(file)
+        except KeyError:
             if file.startswith("SNOVA"):
-                # Skip stuff from disc 3
-                stat = {"LSN": 0, "size": 0}
+                # Silently skip stuff from disc 3
+                lbn = 0
+                size = 0
             else:
-                raise EnvironmentError, "Cannot find '%s' in image" % file
+                raise
 
         # Create the reference
-        lbn = stat["LSN"]
-        size = stat["size"]
         if roundup and (size % 2048):
             size = size + 2048 - size % 2048
 
@@ -4451,27 +4446,24 @@ def applyPatch(data, patch, image, version):
         if isinstance(file, dict):
             file = file[version]
 
-        try:
-            stat = image.stat(file + ";1")
-        except SystemError:
-            raise EnvironmentError, "Cannot find '%s' in image" % file
+        firstSector, numBytes = image.findExtent(file)
 
-        lsn = stat["LSN"] + patch.get("startblock", 0)
+        lbn = firstSector + patch.get("startblock", 0)
 
         if (checkValue & 0xffff0000) in (0x34040000, 0x24040000):
 
             # Reference is immediate operand of "li $a0, xxx" instruction
-            if lsn > 0x7fff:
+            if lbn > 0x7fff:
                 raise IndexError, "First sector of '%s' too high for code reference" % file
 
-            ref = struct.pack("<H", lsn)
+            ref = struct.pack("<H", lbn)
             data = data[:offset] + ref + data[offset+2:]
 
         elif checkValue & 0xffff0000 == 0x3c040000:
 
             # Reference is "lui $a0, hi; ori/addi $a0, lo" instruction sequence
-            refHi = struct.pack("<H", lsn >> 16)
-            refLo = struct.pack("<H", lsn & 0xffff)
+            refHi = struct.pack("<H", lbn >> 16)
+            refLo = struct.pack("<H", lbn & 0xffff)
             data = data[:offset] + refHi + data[offset+2:offset+4] + refLo + data[offset+6:]
 
         else:
@@ -4484,20 +4476,14 @@ def applyPatch(data, patch, image, version):
 def applyPatches(path, patchList, imagePath, version):
 
     # Open the image file
-    image = iso9660.ISO9660.FS(imagePath, cdio.drivers["BIN/CUE"])
+    image = ff7.cd.Image(imagePath)
 
     # Find the file in the image
-    try:
-        stat = image.stat(path + ";1")
-        if stat is None:
-            raise SystemError
-    except SystemError:
-        raise EnvironmentError, "Cannot find '%s' in image" % path
+    firstSector, numBytes = image.findExtent(path)
 
     # Read the file data
     print "Patching '%s'..." % path
-    data = image.read_data_blocks(stat["LSN"], stat["sec_size"])[1]
-    data = data[:stat["size"]]
+    data = image.readExtent(firstSector, numBytes)
 
     # Gzipped? Then decompress it
     gzipped = False
@@ -4541,7 +4527,7 @@ def applyPatches(path, patchList, imagePath, version):
 
 # Print usage information and exit.
 def usage(exitcode, error = None):
-    print "Usage: %s [OPTION...] <image>[.cue/bin]" % os.path.basename(sys.argv[0])
+    print "Usage: %s [OPTION...] <image>[.bin]" % os.path.basename(sys.argv[0])
     print "  -V, --version                   Display version information and exit"
     print "  -?, --help                      Show this help message"
 
@@ -4577,7 +4563,7 @@ if not os.path.splitext(imagePath)[1]:
 try:
 
     # Check that this is a FF7 disc
-    image = iso9660.ISO9660.FS(imagePath, cdio.drivers["BIN/CUE"])
+    image = ff7.cd.Image(imagePath)
     version, discNumber, execFileName = ff7.checkDisc(image)
     image.close()
 

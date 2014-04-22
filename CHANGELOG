@@ -1,3 +1,8 @@
+V1.2 (2014-04-22)
+ - removed the dependency on pycdio
+ - fixed a bug with missing padding in the KERNEL.BIN file produced by
+   'trans'
+
 V1.1 (2014-04-10)
  - added support for the English, French, and Spanish PAL releases of the
    game
