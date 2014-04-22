@@ -282,6 +282,9 @@ class StringList:
                         data += c
                         i += 1
 
+        if len(data) % 2:
+            data += '\xff'  # align to 16-bit boundary
+
         # Encode the offset table
         offsetData = ""
         for offset in offsets:
