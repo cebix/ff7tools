@@ -10,7 +10,7 @@
 # copyright notice and this permission notice appear in all copies.
 #
 
-__version__ = "1.2"
+__version__ = "1.3"
 
 import sys
 import os
@@ -18,6 +18,11 @@ import struct
 import shutil
 import re
 import unicodedata
+import codecs
+import locale
+
+sys.stdout = codecs.getwriter(locale.getpreferredencoding())(sys.stdout, "backslashreplace")
+sys.stderr = codecs.getwriter(locale.getpreferredencoding())(sys.stderr, "backslashreplace") 
 
 import ff7
 from ff7.field import Op
@@ -38,7 +43,7 @@ def retrieveTrans(transPath, subDir, fileName):
     lines = f.readlines()
     f.close()
 
-    return [l.decode("utf-8").rstrip("\n\r") for l in lines]
+    return [l.decode("utf-8-sig").rstrip("\n\r") for l in lines]
 
 
 # Retrieve the strings of a UTF-8 field translation file as a list of
@@ -56,7 +61,7 @@ def retrieveFieldTrans(transPath, subDir, fileName):
     if not lines:
         return strings
 
-    lines = [l.decode("utf-8") for l in lines]
+    lines = [l.decode("utf-8-sig") for l in lines]
     if lines[0].startswith(u'\u25b6'):
         lines = lines[1:]
     else:
@@ -232,7 +237,7 @@ def translateFiles(transPath, discPath, execFileName, version):
                 rawStringSize = len(rawString)
 
                 if rawStringSize > stringSize:
-                    raise EnvironmentError, "String '%s' from file '%s' is too long when encoded (%d > %d bytes)" % (string.encode("utf-8"), transFileName, rawStringSize, stringSize)
+                    raise EnvironmentError, "String '%s' from file '%s' is too long when encoded (%d > %d bytes)" % (string, transFileName, rawStringSize, stringSize)
 
                 if rawStringSize < stringSize:
                     rawString += '\x00' * (stringSize - rawStringSize)  # pad with 0x00 bytes
@@ -352,7 +357,7 @@ def translateKernel(transPath, discPath, version):
         rawStringSize = len(rawString)
 
         if rawStringSize > 12:
-            raise EnvironmentError, "String '%s' from file 'init_name.txts' is too long when encoded (%d > 12 bytes)" % (string.encode("utf-8"), rawStringSize)
+            raise EnvironmentError, "String '%s' from file 'init_name.txts' is too long when encoded (%d > 12 bytes)" % (string, rawStringSize)
 
         if rawStringSize < 12:
             rawString += '\xff' * (12 - rawStringSize)  # pad with 0xff bytes
@@ -1169,5 +1174,5 @@ try:
 except Exception, e:
 
     # Pokemon exception handler
-    print >>sys.stderr, unicode(e.message).encode("utf-8")
+    print >>sys.stderr, e.message
     sys.exit(1)

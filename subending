@@ -13,7 +13,7 @@
 
 from __future__ import division  # quantization requires round-to-zero integer division
 
-__version__ = "1.0"
+__version__ = "1.3"
 
 import os
 import sys
@@ -910,5 +910,5 @@ try:
 except Exception, e:
 
     # Pokemon exception handler
-    print >>sys.stderr, unicode(e.message).encode("utf-8")
+    print >>sys.stderr, e.message
     sys.exit(1)

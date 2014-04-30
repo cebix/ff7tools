@@ -10,12 +10,17 @@
 # copyright notice and this permission notice appear in all copies.
 #
 
-__version__ = "1.2"
+__version__ = "1.3"
 
 import sys
 import os
 import struct
 import shutil
+import codecs
+import locale
+
+sys.stdout = codecs.getwriter(locale.getpreferredencoding())(sys.stdout, "backslashreplace")
+sys.stderr = codecs.getwriter(locale.getpreferredencoding())(sys.stderr, "backslashreplace") 
 
 import ff7
 from ff7.field import Op
@@ -439,5 +444,5 @@ try:
 except Exception, e:
 
     # Pokemon exception handler
-    print >>sys.stderr, unicode(e.message).encode("utf-8")
+    print >>sys.stderr, e.message
     sys.exit(1)
