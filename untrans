@@ -48,20 +48,7 @@ def extractFiles(discPath, transPath, version, execFileName):
     print "Dumping executables..."
 
     # Get the file list
-    if version == ff7.Version.EN:
-        files = ff7.data.execFileData_EN
-    elif version == ff7.Version.FR:
-        files = ff7.data.execFileData_FR
-    elif version == ff7.Version.DE:
-        files = ff7.data.execFileData_DE
-    elif version == ff7.Version.ES:
-        files = ff7.data.execFileData_ES
-    elif version == ff7.Version.US:
-        files = ff7.data.execFileData_US
-    elif version == ff7.Version.JP:
-        files = ff7.data.execFileData_JP
-    else:
-        files = []
+    files = ff7.data.execFileData(version)
 
     # Handle all files
     for discDir, discFileName, offsetList in files:
@@ -101,22 +88,8 @@ def extractSnobo2(discPath, transPath, version):
     print "Dumping snowboard minigame..."
 
     # Get the string list
-    if version == ff7.Version.EN:
-        offsets = ff7.data.snobo2Data_EN
-    elif version == ff7.Version.FR:
-        offsets = ff7.data.snobo2Data_FR
-    elif version == ff7.Version.DE:
-        offsets = ff7.data.snobo2Data_DE
-    elif version == ff7.Version.ES:
-        offsets = ff7.data.snobo2Data_ES
-    elif version == ff7.Version.US:
-        offsets = ff7.data.snobo2Data_US
-    elif version == ff7.Version.JP:
-        offsets = ff7.data.snobo2Data_JP
-    else:
-        offsets = []
-
-    if not offsets:
+    offsets = ff7.data.snobo2Data(version)
+    if offsets is None:
         return
 
     # Retrieve the minigame executable
@@ -149,7 +122,7 @@ def extractKernel(discPath, transPath, version):
 
     # Extract all string lists
     for index, numStrings, compressed, transDir, transFileName in ff7.data.kernelStringData:
-        stringList = ff7.kernel.StringList(kernelBin.getFile(9, index).getData(), numStrings, version == ff7.Version.JP)
+        stringList = ff7.kernel.StringList(kernelBin.getFile(9, index).getData(), numStrings, ff7.isJapanese(version))
         saveTrans(transPath, transDir, transFileName, stringList.getStrings())
 
     # Extract the initial character names from the game init data
@@ -158,7 +131,7 @@ def extractKernel(discPath, transPath, version):
 
     lines = []
     for offset in xrange(0x10, 0x431, 0x84):
-        lines.append(ff7.decodeKernelText(data[offset:offset + 12], version == ff7.Version.JP))
+        lines.append(ff7.decodeKernelText(data[offset:offset + 12], ff7.isJapanese(version)))
 
     saveTrans(transPath, "kernel", "init_name.txt", lines)
 
@@ -167,19 +140,8 @@ def extractKernel(discPath, transPath, version):
 def extractWorld(discPath, transPath, version):
     print "Dumping world maps..."
 
-    if version == ff7.Version.EN:
-        listBase = ff7.data.worldStringListOffset_EN
-    elif version == ff7.Version.FR:
-        listBase = ff7.data.worldStringListOffset_FR
-    elif version == ff7.Version.DE:
-        listBase = ff7.data.worldStringListOffset_DE
-    elif version == ff7.Version.ES:
-        listBase = ff7.data.worldStringListOffset_ES
-    elif version == ff7.Version.US:
-        listBase = ff7.data.worldStringListOffset_US
-    elif version == ff7.Version.JP:
-        listBase = ff7.data.worldStringListOffset_JP
-    else:
+    listBase = ff7.data.worldStringListOffset(version)
+    if listBase is None:
         return
 
     # Retrieve the world module file and decompress it
@@ -206,7 +168,7 @@ def extractWorld(discPath, transPath, version):
         lines.append(u"\u25b6 %d" % i)
 
         offset = struct.unpack("<H", data[listBase + i*2 + 2:listBase + i*2 + 4])[0]
-        string = ff7.decodeFieldText(data[listBase + offset:listBase + offset + maxStringSize], version == ff7.Version.JP)
+        string = ff7.decodeFieldText(data[listBase + offset:listBase + offset + maxStringSize], ff7.isJapanese(version))
         lines.append(string)
 
     # Save to output file
@@ -225,15 +187,15 @@ def extractScenes(discPath, transPath, version):
         scene = archive.getScene(i)
 
         # Extract and save the enemy names
-        enemies = scene.getEnemyNames(version == ff7.Version.JP)
+        enemies = scene.getEnemyNames(ff7.isJapanese(version))
         saveTrans(transPath, "scene", "%03d_enemies.txt" % i, enemies)
 
         # Extract and save the attack names
-        attacks = scene.getAbilityNames(version == ff7.Version.JP)
+        attacks = scene.getAbilityNames(ff7.isJapanese(version))
         saveTrans(transPath, "scene", "%03d_abilities.txt" % i, attacks)
 
         # Extract and save the message strings
-        strings = scene.getStrings(version == ff7.Version.JP)
+        strings = scene.getStrings(ff7.isJapanese(version))
         if strings:
             saveTrans(transPath, "scene", "%03d_messages.txt" % i, strings)
 
@@ -243,10 +205,7 @@ def extractFields(discPath, transPath, version):
     print "Dumping field maps..."
 
     # Process all maps
-    for map in ff7.data.fieldMaps:
-        if map == "FRCYO2" and (version in (ff7.Version.US, ff7.Version.JP)):
-            continue
-
+    for map in ff7.data.fieldMaps(version):
         print " ", map
 
         # Get the event data
@@ -254,7 +213,7 @@ def extractFields(discPath, transPath, version):
         event = mapData.getEventSection()
 
         # Fetch the strings
-        strings = event.getStrings(version == ff7.Version.JP)
+        strings = event.getStrings(ff7.isJapanese(version))
 
         # Fetch the script code and the strings
         code = event.scriptCode
@@ -354,7 +313,7 @@ def extractFields(discPath, transPath, version):
 
                 # Extract the script
                 tutorial = ff7.tutorial.Script(extra)
-                script = tutorial.getScript(version == ff7.Version.JP)
+                script = tutorial.getScript(ff7.isJapanese(version))
 
                 # Save to output file
                 saveTrans(transPath, "tutorial", "%s-%d.txt" % (map.lower(), i), script)

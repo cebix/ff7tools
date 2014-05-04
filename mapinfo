@@ -15,6 +15,11 @@ __version__ = "1.3"
 import sys
 import os
 import shutil
+import codecs
+import locale
+
+sys.stdout = codecs.getwriter(locale.getpreferredencoding())(sys.stdout, "backslashreplace")
+sys.stderr = codecs.getwriter(locale.getpreferredencoding())(sys.stderr, "backslashreplace") 
 
 import ff7
 
@@ -88,10 +93,7 @@ try:
         sys.exit(1)
 
     # Handle all map files
-    for map in ff7.data.fieldMaps:
-        if map == "FRCYO2" and (version in (ff7.Version.US, ff7.Version.JP)):
-            continue
-
+    for map in ff7.data.fieldMaps(version):
         print map
 
         # Get the event data
@@ -119,7 +121,7 @@ try:
         print >>f
 
         id = 0
-        for string in event.getStrings(version == ff7.Version.JP):
+        for string in event.getStrings(ff7.isJapanese(version)):
             print >>f, (u"\u25b6 %d" % id).encode("utf-8")
             print >>f, string.encode("utf-8")
             id += 1

@@ -123,19 +123,8 @@ def retrieveMetrics(discPath):
 
 # Recalculate sorting table in item menu module.
 def calcItemTable(data, version):
-    if version == ff7.Version.EN:
-        offset = ff7.data.itemTableOffset_EN
-    elif version == ff7.Version.FR:
-        offset = ff7.data.itemTableOffset_FR
-    elif version == ff7.Version.DE:
-        offset = ff7.data.itemTableOffset_DE
-    elif version == ff7.Version.ES:
-        offset = ff7.data.itemTableOffset_ES
-    elif version == ff7.Version.US:
-        offset = ff7.data.itemTableOffset_US
-    elif version == ff7.Version.JP:
-        offset = ff7.data.itemTableOffset_JP
-    else:
+    offset = ff7.data.itemTableOffset(version)
+    if offset is None:
         return data
 
     # Retrieve item names
@@ -185,20 +174,7 @@ def translateFiles(transPath, discPath, execFileName, version):
     print "Translating executables..."
 
     # Get the file list
-    if version == ff7.Version.EN:
-        files = ff7.data.execFileData_EN
-    elif version == ff7.Version.FR:
-        files = ff7.data.execFileData_FR
-    elif version == ff7.Version.DE:
-        files = ff7.data.execFileData_DE
-    elif version == ff7.Version.ES:
-        files = ff7.data.execFileData_ES
-    elif version == ff7.Version.US:
-        files = ff7.data.execFileData_US
-    elif version == ff7.Version.JP:
-        files = ff7.data.execFileData_JP
-    else:
-        files = []
+    files = ff7.data.execFileData(version)
 
     # Handle all files
     for discDir, discFileName, offsetList in files:
@@ -265,22 +241,8 @@ def translateSnobo2(transPath, discPath, version):
     print "Translating snowboard minigame..."
 
     # Get the string list
-    if version == ff7.Version.EN:
-        offsets = ff7.data.snobo2Data_EN
-    elif version == ff7.Version.FR:
-        offsets = ff7.data.snobo2Data_FR
-    elif version == ff7.Version.DE:
-        offsets = ff7.data.snobo2Data_DE
-    elif version == ff7.Version.ES:
-        offsets = ff7.data.snobo2Data_ES
-    elif version == ff7.Version.US:
-        offsets = ff7.data.snobo2Data_US
-    elif version == ff7.Version.JP:
-        offsets = ff7.data.snobo2Data_JP
-    else:
-        offsets = []
-
-    if not offsets:
+    offsets = ff7.data.snobo2Data(version)
+    if offsets is None:
         return
 
     # Retrieve the minigame executable
@@ -377,19 +339,8 @@ def translateKernel(transPath, discPath, version):
 def translateWorld(transPath, discPath, version, incremental):
     print "Translating world maps..."
 
-    if version == ff7.Version.EN:
-        listBase = ff7.data.worldStringListOffset_EN
-    elif version == ff7.Version.FR:
-        listBase = ff7.data.worldStringListOffset_FR
-    elif version == ff7.Version.DE:
-        listBase = ff7.data.worldStringListOffset_DE
-    elif version == ff7.Version.ES:
-        listBase = ff7.data.worldStringListOffset_ES
-    elif version == ff7.Version.US:
-        listBase = ff7.data.worldStringListOffset_US
-    elif version == ff7.Version.JP:
-        listBase = ff7.data.worldStringListOffset_JP
-    else:
+    listBase = ff7.data.worldStringListOffset(version)
+    if listBase is None:
         return
 
     transFileName = "world.txt"
@@ -427,7 +378,7 @@ def translateWorld(transPath, discPath, version, incremental):
     offset = 2 + numStrings * 2
     for string in strings:
         stringOffsets += struct.pack("<H", offset)
-        rawString = ff7.encodeFieldText(string, version == ff7.Version.JP)
+        rawString = ff7.encodeFieldText(string, ff7.isJapanese(version))
         stringData += rawString
         offset += len(rawString)
 
@@ -601,7 +552,7 @@ def translateFields(transPath, discPath, version, incremental):
     metrics = retrieveMetrics(discPath)
 
     # Process all maps
-    for map in ff7.data.fieldMaps:
+    for map in ff7.data.fieldMaps(version):
         transFileName = map.lower() + ".txt"
         mapFileName = map + ".DAT"
 
@@ -945,7 +896,7 @@ def addCharacter(font, charCode, image):
 # Repair some broken font metrics in the western releases and add extra
 # characters.
 def patchFont(discPath, version):
-    if version == ff7.Version.JP:
+    if ff7.isJapanese(version):
         return
 
     print "Fixing font..."
@@ -1083,7 +1034,7 @@ def patchDebugMode(discPath, execFileName, version):
 
     if version in (ff7.Version.EN, ff7.Version.FR, ff7.Version.DE, ff7.Version.ES):
         offset = 0x23f4
-    elif version in (ff7.Version.US, ff7.Version.JP):
+    elif version in (ff7.Version.US, ff7.Version.JP, ff7.Version.JO):
         offset = 0x23d8
     else:
         return

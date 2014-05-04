@@ -9,7 +9,7 @@
 #
 
 __author__ = "Christian Bauer <www.cebix.net>"
-__version__ = "1.2"
+__version__ = "1.3"
 
 
 import os
@@ -37,13 +37,20 @@ def _enum(**enums):
 
 # Supported game versions
 Version = _enum(
-    EN = 1,  # English PAL release (SCES-00867)
-    FR = 2,  # French PAL release (SCES-00868)
-    DE = 3,  # German PAL release (SCES-00869)
-    ES = 4,  # Spanish PAL release (SCES-00900)
+    EN = 1,  # English European release (SCES-00867)
+    FR = 2,  # French European release (SCES-00868)
+    DE = 3,  # German European release (SCES-00869)
+    ES = 4,  # Spanish European release (SCES-00900)
     US = 5,  # US release (SCUS-94163)
     JP = 6,  # Japanese International release (SLPS-01057)
+    JO = 7,  # Original Japanese release (SLPS-00700)
 )
+
+def isEuropean(version):
+    return version in [Version.EN, Version.FR, Version.DE, Version.ES]
+
+def isJapanese(version):
+    return version in [Version.JP, Version.JO]
 
 
 # Retrieve a file from a disc image.
@@ -141,6 +148,8 @@ def checkDisc(discPath):
         version = Version.US
     elif execFileName in ["SLPS_010.57", "SLPS_010.58", "SLPS_010.59"]:
         version = Version.JP
+    elif execFileName in ["SLPS_007.00", "SLPS_007.01", "SLPS_007.02"]:
+        version = Version.JO
     else:
         raise EnvironmentError, "Unrecognized game version"
 

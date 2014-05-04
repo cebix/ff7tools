@@ -8,6 +8,8 @@
 # copyright notice and this permission notice appear in all copies.
 #
 
+import ff7
+
 
 #
 # Kernel string list information (KERNEL.BIN archive)
@@ -433,7 +435,7 @@ execFileData_US = [
     ]),
 ]
 
-# Japanese version
+# Japanese International version
 execFileData_JP = [
 
     # discDir, discFileName, offsetList
@@ -472,7 +474,7 @@ execFileData_JP = [
         ( 0xf070, 0x08,  1, True, "menu", "save1.txt"),
         (0x12e98, 0x22, 39, True, "menu", "save2.txt"),
         (0x133c2, 0x1e, 20, True, "menu", "save3.txt"),
-        (0x13670, 0x20,  4, True, "menu", "save4.txt"),
+        (0x13650, 0x20,  5, True, "menu", "save4.txt"),
     ]),
     ("MENU", "SHOPMENU.MNU", [
         (0x40d8, 0x14,  9, True, "menu", "shop_type.txt"),
@@ -511,12 +513,108 @@ execFileData_JP = [
     ]),
 ]
 
+# Original Japanese version
+execFileData_JO = [
+
+    # discDir, discFileName, offsetList
+    ("", "<EXEC>", [
+        # offset, stringSize, numStrings, jpEnc, transDir, transFileName
+        (0x397f8, 0x0c, 25, True, "menu", "main.txt"),
+        (0x39958, 0x08,  3, True, "menu", "main2.txt"),  # "HP"/"MP"/"LV" texts
+    ]),
+    ("MENU", "CNFGMENU.MNU", [
+        (0x1a60, 0x1c, 51, True, "menu", "config.txt"),
+    ]),
+    ("MENU", "EQIPMENU.MNU", [
+        (0x6310, 0x0e, 24, True, "menu", "equip_attr.txt"),
+        (0x6494, 0x10,  4, True, "menu", "remove.txt"),
+        (0x64d4, 0x10, 42, True, "menu", "materia.txt"),
+    ]),
+    ("MENU", "FORMMENU.MNU", [
+        (0x1c98, 0x14,  6, True, "menu", "form1.txt"),
+        (0x1d10, 0x0f, 26, True, "menu", "form2.txt"),
+    ]),
+    ("MENU", "ITEMMENU.MNU", [
+        (0x33d0, 0x28, 25, True, "menu", "lv4_limit.txt"),
+        (0x3ed8, 0x08, 11, True, "menu", "item.txt"),
+    ]),
+    ("MENU", "LIMTMENU.MNU", [
+        (0x214c, 0x19, 14, True, "menu", "limit.txt"),
+    ]),
+    ("MENU", "MGICMENU.MNU", [
+        (0x28d0, 0x14, 14, True, "menu", "magic.txt"),
+    ]),
+    ("MENU", "NAMEMENU.MNU", [
+        (0x8e00, 0x10,  6, True, "menu", "name2.txt"),
+        (0x8e60, 0x0c, 10, True, "menu", "default_name.txt"),
+        (0x8ed8, 0x08,  8, True, "menu", "name.txt"),
+    ]),
+    ("MENU", "SAVEMENU.MNU", [
+        ( 0xecf8, 0x08,  1, True, "menu", "save1.txt"),
+        (0x13004, 0x18, 38, True, "menu", "save2.txt"),
+        (0x1339a, 0x1e, 20, True, "menu", "save3.txt"),
+        (0x13628, 0x20,  5, True, "menu", "save4.txt"),
+    ]),
+    ("MENU", "SHOPMENU.MNU", [
+        (0x40d8, 0x14,  8, True, "menu", "shop_type.txt"),
+        (0x4178, 0x14,  8, True, "menu", "shop_greeting1.txt"),
+        (0x4240, 0x14,  8, True, "menu", "shop_greeting2.txt"),
+        (0x4308, 0x14,  8, True, "menu", "shop_greeting3.txt"),
+        (0x43d0, 0x14,  8, True, "menu", "shop_greeting4.txt"),
+        (0x4498, 0x14,  8, True, "menu", "shop_greeting5.txt"),
+        (0x5fa0, 0x10,  4, True, "menu", "remove.txt"),
+        (0x5fe0, 0x10, 42, True, "menu", "materia.txt"),
+        (0x6284, 0x0e, 24, True, "menu", "equip_attr.txt"),
+        (0x63e4, 0x10, 10, True, "menu", "shop.txt"),
+    ]),
+    ("MENU", "STATMENU.MNU", [
+        (0x166c, 0x0a, 27, True, "menu", "stat.txt"),
+    ]),
+    ("BATTLE", "BATTLE.X", [
+        (0x536bc, 0x05, 32, True, "battle", "status.txt"),
+        (0x53788, 0x18,  1, True, "battle", "gil1.txt"),
+        (0x537a0, 0x04,  1, True, "battle", "gil2.txt"),
+        (0x537a4, 0x08,  1, True, "battle", "gil3.txt"),
+        (0x537ac, 0x08,  1, True, "battle", "gil4.txt"),
+        (0x538f4, 0x10,  1, True, "battle", "arena1.txt"),
+        (0x53904, 0x10,  1, True, "battle", "arena2.txt"),
+        (0x53914, 0x10,  5, True, "battle", "arena3.txt"),
+        (0x53965, 0x11, 24, True, "battle", "arena_handicap.txt"),
+        (0x53b20, 0x14,  3, True, "battle", "worried.txt"),
+    ]),
+    ("FIELD", "CHOCOBO.BIN", [
+        (0x12318,  0x08,  1, True, "chocobo", "black.txt"),
+        (0x12438,  0x10, 24, True, "chocobo", "prices.txt"),
+# TODO: In the Japanese version, each name has 6 characters, followed by 2 data bytes.
+#       The translation tools cannot currently handle this.
+#        (0x125b0, 0x108,  1, True, "chocobo", "names.txt"),
+    ]),
+]
+
+def execFileData(version):
+    if version == ff7.Version.EN:
+        return execFileData_EN
+    elif version == ff7.Version.FR:
+        return execFileData_FR
+    elif version == ff7.Version.DE:
+        return execFileData_DE
+    elif version == ff7.Version.ES:
+        return execFileData_ES
+    elif version == ff7.Version.US:
+        return execFileData_US
+    elif version == ff7.Version.JP:
+        return execFileData_JP
+    elif version == ff7.Version.JO:
+        return execFileData_JO
+    else:
+        return []
+
 
 #
 # Translatable strings embedded in snowboard minigame (SNOBO2)
 #
 
-# English PAL version
+# English and Japanese International versions
 snobo2Data_EN = [
     # offset, stringSize
     (0x354, 8),
@@ -551,7 +649,7 @@ snobo2Data_EN = [
     (0x440, 5),
 ]
 
-# French PAL version
+# French European version
 snobo2Data_FR = [
     # offset, stringSize
     (0x350, 12),
@@ -585,7 +683,7 @@ snobo2Data_FR = [
     (0x448, 6),
 ]
 
-# German PAL version
+# German European version
 snobo2Data_DE = [
     # offset, stringSize
     (0x350, 8),
@@ -620,7 +718,7 @@ snobo2Data_DE = [
     (0x434, 3),
 ]
 
-# Spanish PAL version
+# Spanish European version
 snobo2Data_ES = [
     # offset, stringSize
     (0x350, 8),
@@ -654,32 +752,40 @@ snobo2Data_ES = [
     (0x43c, 8),
 ]
 
-# US and Japanese versions use English text
-snobo2Data_US = snobo2Data_EN
-snobo2Data_JP = snobo2Data_EN
+def snobo2Data(version):
+    if version in [ff7.Version.EN, ff7.Version.US, ff7.Version.JP]:
+        return snobo2Data_EN
+    elif version == ff7.Version.FR:
+        return snobo2Data_FR
+    elif version == ff7.Version.DE:
+        return snobo2Data_DE
+    elif version == ff7.Version.ES:
+        return snobo2Data_ES
+    else:
+        return None
 
 
 #
 # World module string list offset and size
 #
 
-# English PAL version
-worldStringListOffset_EN = 0x1e5b4
-
-# French PAL version
-worldStringListOffset_FR = 0x1e5b4
-
-# German PAL version
-worldStringListOffset_DE = 0x1e5b4
-
-# Spanish PAL version
-worldStringListOffset_ES = 0x1e5b4
-
-# US version
-worldStringListOffset_US = 0x1e5f0
-
-# Japanese version
-worldStringListOffset_JP = 0x1e5c0
+def worldStringListOffset(version):
+    if version == ff7.Version.EN:
+        return 0x1e5b4  # English European version
+    elif version == ff7.Version.FR:
+        return 0x1e5b4  # French European version
+    elif version == ff7.Version.DE:
+        return 0x1e5b4  # German European version
+    elif version == ff7.Version.ES:
+        return 0x1e5b4  # Spanish European version
+    elif version == ff7.Version.US:
+        return 0x1e5f0  # US verson
+    elif version == ff7.Version.JP:
+        return 0x1e5c0  # Japanese International version
+    elif version == ff7.Version.JO:
+        return 0x1e430  # Original Japanese version
+    else:
+        return None
 
 worldStringListSize = 0x1000
 
@@ -688,36 +794,32 @@ worldStringListSize = 0x1000
 # Offset of sorting table in ITEMMENU.MNU
 #
 
-# English PAL version
-itemTableOffset_EN = 0x35b4
-
-# French PAL version
-itemTableOffset_FR = 0x3838
-
-# German PAL version
-itemTableOffset_DE = 0x3638
-
-# Spanish PAL version
-itemTableOffset_ES = 0x3608
-
-# US version
-itemTableOffset_US = 0x35b4
-
-# Japanese version
-itemTableOffset_JP = 0x37b8
+def itemTableOffset(version):
+    if version == ff7.Version.EN:
+        return 0x35b4  # English European version
+    elif version == ff7.Version.FR:
+        return 0x3838  # French European version
+    elif version == ff7.Version.DE:
+        return 0x3638  # German European version
+    elif version == ff7.Version.ES:
+        return 0x3608  # Spanish European version
+    elif version == ff7.Version.US:
+        return 0x35b4  # US version
+    elif version == ff7.Version.JP:
+        return 0x37b8  # Japanese version
+    else:
+        return None
 
 
 #
-# List of field maps, excluding the following invalid/special ones
-# which have no translatable strings:
-# - BLACKBGA
+# List of field maps, excluding the following ones which are dummied out or
+# contain no text in any version of the game:
 # - BLACKBGD
 # - BLACKBGF
 # - BLACKBGG
 # - BLIN69_2
 # - CONVIL_3
 # - DUMMY
-# - FALLP
 # - FSHIP_26
 # - HYOU14
 # - JUNMON
@@ -726,109 +828,152 @@ itemTableOffset_JP = 0x37b8
 # - NIVGATE3
 # - NIVINN_3
 # - NIVL_4
-# - ONNA_1
-# - ONNA_3
-# - ONNA_6
 # - PASS
 # - Q_5
 # - SUBIN_4
 # - TRAP
-# - WHITEBG1
-# - WHITEBG2
 # - WM*
 # - XMVTES
 #
-# Note: The FRCYO2 map (Chocobo stable disc 2/3) is only present in PAL
-# versions of the game.
-#
 
-fieldMaps = [
-    "4SBWY_1", "4SBWY_22", "4SBWY_2", "4SBWY_3", "4SBWY_4", "4SBWY_5", "4SBWY_6", "5MIN1_1",
-    "5MIN1_2", "5TOWER", "7MIN1", "ANCNT1", "ANCNT2", "ANCNT3", "ANCNT4", "ANFRST_1",
-    "ANFRST_2", "ANFRST_3", "ANFRST_4", "ANFRST_5", "ASTAGE_A", "ASTAGE_B", "BIGWHEEL", "BLACKBG1",
-    "BLACKBG2", "BLACKBG3", "BLACKBG4", "BLACKBG5", "BLACKBG6", "BLACKBG7", "BLACKBG8", "BLACKBG9",
-    "BLACKBGB", "BLACKBGC", "BLACKBGE", "BLACKBGH", "BLACKBGI", "BLACKBGJ", "BLACKBGK", "BLIN1",
-    "BLIN2", "BLIN2_I", "BLIN3_1", "BLIN59", "BLIN60_1", "BLIN60_2", "BLIN61", "BLIN62_1",
-    "BLIN62_2", "BLIN62_3", "BLIN63_1", "BLIN63_T", "BLIN64", "BLIN65_1", "BLIN65_2", "BLIN66_1",
-    "BLIN66_2", "BLIN66_3", "BLIN66_4", "BLIN66_5", "BLIN66_6", "BLIN671B", "BLIN67_1", "BLIN67_2",
-    "BLIN673B", "BLIN67_3", "BLIN67_4", "BLIN68_1", "BLIN68_2", "BLIN69_1", "BLIN70_1", "BLIN70_2",
-    "BLIN70_3", "BLIN70_4", "BLINELE", "BLINST_1", "BLINST_2", "BLINST_3", "BLUE_1", "BLUE_2",
-    "BONEVIL2", "BONEVIL", "BUGIN1A", "BUGIN1B", "BUGIN1C", "BUGIN2", "BUGIN3", "BWHLIN2",
-    "BWHLIN", "CANON_1", "CANON_2", "CARGOIN", "CHORACE2", "CHORACE", "CHRIN_1A", "CHRIN_1B",
-    "CHRIN_2", "CHRIN_3A", "CHRIN_3B", "CHURCH", "CLSIN2_1", "CLSIN2_2", "CLSIN2_3", "COLNE_1",
-    "COLNE_2", "COLNE_3", "COLNE_4", "COLNE_5", "COLNE_6", "COLNE_B1", "COLNE_B3", "COLOIN1",
-    "COLOIN2", "COLOSS", "CONDOR1", "CONDOR2", "CONVIL_1", "CONVIL_2", "CONVIL_4", "COREL1",
-    "COREL2", "COREL3", "CORELIN", "COS_BTM2", "COS_BTM", "COSIN1_1", "COSIN1", "COSIN2",
-    "COSIN3", "COSIN4", "COSIN5", "COSMIN2", "COSMIN3", "COSMIN4", "COSMIN6", "COSMIN7",
-    "COSMO2", "COSMO", "COS_TOP", "CRATER_1", "CRATER_2", "CRCIN_1", "CRCIN_2", "DATIAO_1",
-    "DATIAO_2", "DATIAO_3", "DATIAO_4", "DATIAO_5", "DATIAO_6", "DATIAO_7", "DATIAO_8", "DEL12",
-    "DEL1", "DEL2", "DEL3", "DELINN", "DELMIN12", "DELMIN1", "DELMIN2", "DELPB",
-    "DESERT1", "DESERT2", "DYNE", "EALIN_12", "EALIN_1", "EALIN_2", "EALS_1", "ELEOUT",
-    "ELEVTR1", "ELM", "ELM_I", "ELMIN1_1", "ELMIN1_2", "ELMIN2_1", "ELMIN2_2", "ELMIN3_1",
-    "ELMIN3_2", "ELMIN4_1", "ELMIN4_2", "ELMINN_1", "ELMINN_2", "ELMPB", "ELMTOW", "ELM_WA",
-    "FARM", "FRCYO2", "FRCYO", "FR_E", "FRMIN", "FSHIP_12", "FSHIP_1", "FSHIP_22",
-    "FSHIP_23", "FSHIP_24", "FSHIP_25", "FSHIP_2", "FSHIP_3", "FSHIP_42", "FSHIP_4", "FSHIP_5",
-    "GAIA_1", "GAIA_2", "GAIA_31", "GAIA_32", "GAIAFOOT", "GAIIN_1", "GAIIN_2", "GAIIN_3",
-    "GAIIN_4", "GAIIN_5", "GAIIN_6", "GAIIN_7", "GAMES_1", "GAMES_2", "GAMES", "GHOTEL",
-    "GHOTIN_1", "GHOTIN_2", "GHOTIN_3", "GHOTIN_4", "GIDUN_1", "GIDUN_2", "GIDUN_3", "GIDUN_4",
-    "GLDELEV", "GLDGATE", "GLDINFO", "GLDST", "GNINN", "GNMK", "GNMKF", "GOMIN",
-    "GONGAGA", "GON_I", "GONJUN1", "GONJUN2", "GON_WA1", "GON_WA2", "GOSON", "HEKIGA",
-    "HIDEWAY1", "HIDEWAY2", "HIDEWAY3", "HILL2", "HILL", "HOLU_1", "HOLU_2", "HYOU10",
-    "HYOU11", "HYOU12", "HYOU13_1", "HYOU13_2", "HYOU1", "HYOU2", "HYOU3", "HYOU4",
-    "HYOU5_1", "HYOU5_2", "HYOU5_3", "HYOU5_4", "HYOU6", "HYOU7", "HYOU8_1", "HYOU8_2",
-    "HYOU9", "HYOUMAP", "ICEDUN_1", "ICEDUN_2", "ITHILL", "ITHOS", "ITMIN1", "ITMIN2",
-    "ITOWN12", "ITOWN1A", "ITOWN1B", "ITOWN2", "ITOWN_I", "ITOWN_M", "ITOWN_W", "JAIL1",
-    "JAIL2", "JAIL3", "JAIL4", "JAILIN1", "JAILIN2", "JAILIN3", "JAILIN4", "JAILPB",
-    "JET", "JETIN1", "JTEMPLB", "JTEMPLC", "JTEMPL", "JTMPIN1", "JTMPIN2", "JUMIN",
-    "JUN_A", "JUNAIR2", "JUNAIR", "JUNBIN12", "JUNBIN1", "JUNBIN21", "JUNBIN22", "JUNBIN3",
-    "JUNBIN4", "JUNBIN5", "JUNDOC1A", "JUNDOC1B", "JUNELE1", "JUNELE2", "JUN_I1", "JUN_I2",
-    "JUNIN1A", "JUNIN1", "JUNIN2", "JUNIN3", "JUNIN4", "JUNIN5", "JUNIN6", "JUNIN7",
-    "JUNINN", "JUN_M", "JUNMIN1", "JUNMIN2", "JUNMIN3", "JUNMIN4", "JUNMIN5", "JUNON",
-    "JUNONE22", "JUNONE2", "JUNONE3", "JUNONE4", "JUNONE5", "JUNONE6", "JUNONE7", "JUNONL1",
-    "JUNONL2", "JUNONL3", "JUNONR1", "JUNONR2", "JUNONR3", "JUNONR4", "JUNPB_1", "JUNPB_2",
-    "JUNPB_3", "JUNSBD1", "JUN_WA", "JUN_W", "KURO_10", "KURO_11", "KURO_12", "KURO_1",
-    "KURO_2", "KURO_3", "KURO_4", "KURO_5", "KURO_6", "KURO_7", "KURO_82", "KURO_8",
-    "KURO_9", "LAS0_1", "LAS0_2", "LAS0_3", "LAS0_4", "LAS0_5", "LAS0_6", "LAS0_7",
-    "LAS0_8", "LAS1_1", "LAS1_2", "LAS1_3", "LAS1_4", "LAS2_1", "LAS2_2", "LAS2_3",
-    "LAS2_4", "LAS3_1", "LAS3_2", "LAS3_3", "LAS4_0", "LAS4_1", "LAS4_2", "LAS4_3",
-    "LAS4_4", "LASTMAP", "LIFE2", "LIFE", "LOSIN1", "LOSIN2", "LOSIN3",
-    "LOSINN", "LOSLAKE1", "LOSLAKE2", "LOSLAKE3", "LOST1", "LOST2", "LOST3", "MD0",
-    "MD1_1", "MD1_2", "MD1STIN", "MD8_1", "MD8_2", "MD8_32", "MD8_3", "MD8_4",
-    "MD8_52", "MD8_5", "MD8_6", "MD8_B1", "MD8_B2", "MD8BRDG2", "MD8BRDG", "MD_E1",
-    "MDS5_1", "MDS5_2", "MDS5_3", "MDS5_4", "MDS5_5", "MDS5_DK", "MDS5_I", "MDS5_M",
-    "MDS5_W", "MDS6_1", "MDS6_22", "MDS6_2", "MDS6_3", "MDS7", "MDS7_IM", "MDS7PB_1",
-    "MDS7PB_2", "MDS7PLR1", "MDS7PLR2", "MDS7ST1", "MDS7ST2", "MDS7ST32", "MDS7ST33", "MDS7ST3",
-    "MDS7_W1", "MDS7_W2", "MDS7_W3", "MIDGAL", "MKT_IA", "MKTINN", "MKT_M", "MKT_MENS",
-    "MKTPB", "MKT_S1", "MKT_S2", "MKT_S3", "MKT_W", "MOGU_1", "MOVE_D", "MOVE_F",
-    "MOVE_I", "MOVE_R", "MOVE_S", "MOVE_U", "MRKT1", "MRKT2", "MRKT3", "MRKT4",
-    "MTCRL_0", "MTCRL_1", "MTCRL_2", "MTCRL_3", "MTCRL_4", "MTCRL_5", "MTCRL_6", "MTCRL_7",
-    "MTCRL_8", "MTCRL_9", "MTNVL2", "MTNVL3", "MTNVL4", "MTNVL5", "MTNVL6B", "MTNVL6",
-    "NCOIN1", "NCOIN2", "NCOIN3", "NCOINN", "NCOREL2", "NCOREL3", "NCOREL", "NIV_CL",
+mapNames = [
+    "4SBWY_1", "4SBWY_22", "4SBWY_2", "4SBWY_3", "4SBWY_4", "4SBWY_5",
+    "4SBWY_6", "5MIN1_1", "5MIN1_2", "5TOWER", "7MIN1", "ANCNT1", "ANCNT2",
+    "ANCNT3", "ANCNT4", "ANFRST_1", "ANFRST_2", "ANFRST_3", "ANFRST_4",
+    "ANFRST_5", "ASTAGE_A", "ASTAGE_B", "BIGWHEEL", "BLACKBG1", "BLACKBG2",
+    "BLACKBG3", "BLACKBG4", "BLACKBG5", "BLACKBG6", "BLACKBG7", "BLACKBG8",
+    "BLACKBG9", "BLACKBGA", "BLACKBGB", "BLACKBGC", "BLACKBGE", "BLACKBGH",
+    "BLACKBGI", "BLACKBGJ", "BLACKBGK", "BLIN1", "BLIN2", "BLIN2_I",
+    "BLIN3_1", "BLIN59", "BLIN60_1", "BLIN60_2", "BLIN61", "BLIN62_1",
+    "BLIN62_2", "BLIN62_3", "BLIN63_1", "BLIN63_T", "BLIN64", "BLIN65_1",
+    "BLIN65_2", "BLIN66_1", "BLIN66_2", "BLIN66_3", "BLIN66_4", "BLIN66_5",
+    "BLIN66_6", "BLIN671B", "BLIN67_1", "BLIN67_2", "BLIN673B", "BLIN67_3",
+    "BLIN67_4", "BLIN68_1", "BLIN68_2", "BLIN69_1", "BLIN70_1", "BLIN70_2",
+    "BLIN70_3", "BLIN70_4", "BLINELE", "BLINST_1", "BLINST_2", "BLINST_3",
+    "BLUE_1", "BLUE_2", "BONEVIL2", "BONEVIL", "BUGIN1A", "BUGIN1B",
+    "BUGIN1C", "BUGIN2", "BUGIN3", "BWHLIN2", "BWHLIN", "CANON_1",
+    "CANON_2", "CARGOIN", "CHORACE2", "CHORACE", "CHRIN_1A", "CHRIN_1B",
+    "CHRIN_2", "CHRIN_3A", "CHRIN_3B", "CHURCH", "CLSIN2_1", "CLSIN2_2",
+    "CLSIN2_3", "COLNE_1", "COLNE_2", "COLNE_3", "COLNE_4", "COLNE_5",
+    "COLNE_6", "COLNE_B1", "COLNE_B3", "COLOIN1", "COLOIN2", "COLOSS",
+    "CONDOR1", "CONDOR2", "CONVIL_1", "CONVIL_2", "CONVIL_4", "COREL1",
+    "COREL2", "COREL3", "CORELIN", "COS_BTM2", "COS_BTM", "COSIN1_1",
+    "COSIN1", "COSIN2", "COSIN3", "COSIN4", "COSIN5", "COSMIN2", "COSMIN3",
+    "COSMIN4", "COSMIN6", "COSMIN7", "COSMO2", "COSMO", "COS_TOP",
+    "CRATER_1", "CRATER_2", "CRCIN_1", "CRCIN_2", "DATIAO_1", "DATIAO_2",
+    "DATIAO_3", "DATIAO_4", "DATIAO_5", "DATIAO_6", "DATIAO_7", "DATIAO_8",
+    "DEL12", "DEL1", "DEL2", "DEL3", "DELINN", "DELMIN12", "DELMIN1",
+    "DELMIN2", "DELPB", "DESERT1", "DESERT2", "DYNE", "EALIN_12", "EALIN_1",
+    "EALIN_2", "EALS_1", "ELEOUT", "ELEVTR1", "ELM", "ELM_I", "ELMIN1_1",
+    "ELMIN1_2", "ELMIN2_1", "ELMIN2_2", "ELMIN3_1", "ELMIN3_2", "ELMIN4_1",
+    "ELMIN4_2", "ELMINN_1", "ELMINN_2", "ELMPB", "ELMTOW", "ELM_WA",
+    "FALLP", "FARM", "FRCYO2", "FRCYO", "FR_E", "FRMIN", "FSHIP_12",
+    "FSHIP_1", "FSHIP_22", "FSHIP_23", "FSHIP_24", "FSHIP_25", "FSHIP_2",
+    "FSHIP_3", "FSHIP_42", "FSHIP_4", "FSHIP_5", "GAIA_1", "GAIA_2",
+    "GAIA_31", "GAIA_32", "GAIAFOOT", "GAIIN_1", "GAIIN_2", "GAIIN_3",
+    "GAIIN_4", "GAIIN_5", "GAIIN_6", "GAIIN_7", "GAMES_1", "GAMES_2",
+    "GAMES", "GHOTEL", "GHOTIN_1", "GHOTIN_2", "GHOTIN_3", "GHOTIN_4",
+    "GIDUN_1", "GIDUN_2", "GIDUN_3", "GIDUN_4", "GLDELEV", "GLDGATE",
+    "GLDINFO", "GLDST", "GNINN", "GNMK", "GNMKF", "GOMIN", "GONGAGA",
+    "GON_I", "GONJUN1", "GONJUN2", "GON_WA1", "GON_WA2", "GOSON", "HEKIGA",
+    "HIDEWAY1", "HIDEWAY2", "HIDEWAY3", "HILL2", "HILL", "HOLU_1", "HOLU_2",
+    "HYOU10", "HYOU11", "HYOU12", "HYOU13_1", "HYOU13_2", "HYOU1", "HYOU2",
+    "HYOU3", "HYOU4", "HYOU5_1", "HYOU5_2", "HYOU5_3", "HYOU5_4", "HYOU6",
+    "HYOU7", "HYOU8_1", "HYOU8_2", "HYOU9", "HYOUMAP", "ICEDUN_1",
+    "ICEDUN_2", "ITHILL", "ITHOS", "ITMIN1", "ITMIN2", "ITOWN12", "ITOWN1A",
+    "ITOWN1B", "ITOWN2", "ITOWN_I", "ITOWN_M", "ITOWN_W", "JAIL1", "JAIL2",
+    "JAIL3", "JAIL4", "JAILIN1", "JAILIN2", "JAILIN3", "JAILIN4", "JAILPB",
+    "JET", "JETIN1", "JTEMPLB", "JTEMPLC", "JTEMPL", "JTMPIN1", "JTMPIN2",
+    "JUMIN", "JUN_A", "JUNAIR2", "JUNAIR", "JUNBIN12", "JUNBIN1",
+    "JUNBIN21", "JUNBIN22", "JUNBIN3", "JUNBIN4", "JUNBIN5", "JUNDOC1A",
+    "JUNDOC1B", "JUNELE1", "JUNELE2", "JUN_I1", "JUN_I2", "JUNIN1A",
+    "JUNIN1", "JUNIN2", "JUNIN3", "JUNIN4", "JUNIN5", "JUNIN6", "JUNIN7",
+    "JUNINN", "JUN_M", "JUNMIN1", "JUNMIN2", "JUNMIN3", "JUNMIN4",
+    "JUNMIN5", "JUNON", "JUNONE22", "JUNONE2", "JUNONE3", "JUNONE4",
+    "JUNONE5", "JUNONE6", "JUNONE7", "JUNONL1", "JUNONL2", "JUNONL3",
+    "JUNONR1", "JUNONR2", "JUNONR3", "JUNONR4", "JUNPB_1", "JUNPB_2",
+    "JUNPB_3", "JUNSBD1", "JUN_WA", "JUN_W", "KURO_10", "KURO_11",
+    "KURO_12", "KURO_1", "KURO_2", "KURO_3", "KURO_4", "KURO_5", "KURO_6",
+    "KURO_7", "KURO_82", "KURO_8", "KURO_9", "LAS0_1", "LAS0_2", "LAS0_3",
+    "LAS0_4", "LAS0_5", "LAS0_6", "LAS0_7", "LAS0_8", "LAS1_1", "LAS1_2",
+    "LAS1_3", "LAS1_4", "LAS2_1", "LAS2_2", "LAS2_3", "LAS2_4", "LAS3_1",
+    "LAS3_2", "LAS3_3", "LAS4_0", "LAS4_1", "LAS4_2", "LAS4_3", "LAS4_4",
+    "LASTMAP", "LIFE2", "LIFE", "LOSIN1", "LOSIN2", "LOSIN3", "LOSINN",
+    "LOSLAKE1", "LOSLAKE2", "LOSLAKE3", "LOST1", "LOST2", "LOST3", "MD0",
+    "MD1_1", "MD1_2", "MD1STIN", "MD8_1", "MD8_2", "MD8_32", "MD8_3",
+    "MD8_4", "MD8_52", "MD8_5", "MD8_6", "MD8_B1", "MD8_B2", "MD8BRDG2",
+    "MD8BRDG", "MD_E1", "MDS5_1", "MDS5_2", "MDS5_3", "MDS5_4", "MDS5_5",
+    "MDS5_DK", "MDS5_I", "MDS5_M", "MDS5_W", "MDS6_1", "MDS6_22", "MDS6_2",
+    "MDS6_3", "MDS7", "MDS7_IM", "MDS7PB_1", "MDS7PB_2", "MDS7PLR1",
+    "MDS7PLR2", "MDS7ST1", "MDS7ST2", "MDS7ST32", "MDS7ST33", "MDS7ST3",
+    "MDS7_W1", "MDS7_W2", "MDS7_W3", "MIDGAL", "MKT_IA", "MKTINN", "MKT_M",
+    "MKT_MENS", "MKTPB", "MKT_S1", "MKT_S2", "MKT_S3", "MKT_W", "MOGU_1",
+    "MOVE_D", "MOVE_F", "MOVE_I", "MOVE_R", "MOVE_S", "MOVE_U", "MRKT1",
+    "MRKT2", "MRKT3", "MRKT4", "MTCRL_0", "MTCRL_1", "MTCRL_2", "MTCRL_3",
+    "MTCRL_4", "MTCRL_5", "MTCRL_6", "MTCRL_7", "MTCRL_8", "MTCRL_9",
+    "MTNVL2", "MTNVL3", "MTNVL4", "MTNVL5", "MTNVL6B", "MTNVL6", "NCOIN1",
+    "NCOIN2", "NCOIN3", "NCOINN", "NCOREL2", "NCOREL3", "NCOREL", "NIV_CL",
     "NIVGATE2", "NIVGATE4", "NIVGATE", "NIVINN_1", "NIVINN_2", "NIVL_2",
-    "NIVL_3", "NIVL_B12", "NIVL_B1", "NIVL_B22", "NIVL_B2", "NIVL", "NIVL_E1",
-    "NIVL_E2", "NIVL_E3", "NIV_TI1", "NIV_TI2", "NIV_TI3", "NIV_TI4", "NIV_W", "NMKIN_1",
-    "NMKIN_2", "NMKIN_3", "NMKIN_4", "NMKIN_5", "NRTHMK", "NVDUN1", "NVDUN2", "NVDUN31",
-    "NVDUN3", "NVDUN4", "NVMIN1_1", "NVMIN1_2", "NVMKIN1", "NVMKIN21", "NVMKIN22", "NVMKIN23",
-    "NVMKIN31", "NVMKIN32", "ONNA_2", "ONNA_4", "ONNA_52", "ONNA_5", "PILLAR_1", "PILLAR_2",
-    "PILLAR_3", "PRISILA", "PSDUN_1", "PSDUN_2", "PSDUN_3", "PSDUN_4", "Q_1", "Q_2",
-    "Q_3", "Q_4", "RCKT2", "RCKT32", "RCKT3", "RCKTBAS1", "RCKTBAS2", "RCKT",
-    "RCKTIN1", "RCKTIN2", "RCKTIN3", "RCKTIN4", "RCKTIN5", "RCKTIN6", "RCKTIN7", "RCKTIN8",
-    "RKT_I", "RKTINN1", "RKTINN2", "RKTMIN1", "RKTMIN2", "RKTSID", "RKT_W", "ROADEND",
-    "ROOTMAP", "ROPEST", "SANDUN_1", "SANDUN_2", "SANGO1", "SANGO2", "SANGO3", "SEA",
-    "SEMKIN_1", "SEMKIN_2", "SEMKIN_3", "SEMKIN_4", "SEMKIN_5", "SEMKIN_6", "SEMKIN_7", "SEMKIN_8",
-    "SETO1", "SHIP_1", "SHIP_2", "SHPIN_22", "SHPIN_2", "SHPIN_3", "SICHI", "SINBIL_1",
-    "SINBIL_2", "SININ1_1", "SININ1_2", "SININ2_1", "SININ2_2", "SININ3", "SININB1", "SININB2",
-    "SININB31", "SININB32", "SININB33", "SININB34", "SININB35", "SININB36", "SININB41", "SININB42",
-    "SININB51", "SININB52", "SKY", "SLFRST_1", "SLFRST_2", "SMKIN_1", "SMKIN_2", "SMKIN_3",
-    "SMKIN_4", "SMKIN_5", "SNINN_1", "SNINN_2", "SNINN_B1", "SNMAYOR", "SNMIN1", "SNMIN2",
-    "SNOW", "SNW_W", "SOUTHMK1", "SOUTHMK2", "SPGATE", "SPIPE_1", "SPIPE_2", "STARTMAP",
-    "SUBIN_1A", "SUBIN_1B", "SUBIN_2A", "SUBIN_2B", "SUBIN_3", "TIN_1", "TIN_2", "TIN_3",
-    "TIN_4", "TRACKIN2", "TRACKIN", "TRNAD_1", "TRNAD_2", "TRNAD_3", "TRNAD_4", "TRNAD_51",
-    "TRNAD_52", "TRNAD_53", "TUNNEL_1", "TUNNEL_2", "TUNNEL_3", "TUNNEL_4", "TUNNEL_5", "TUNNEL_6",
-    "UJUNON1", "UJUNON2", "UJUNON3", "UJUNON4", "UJUNON5", "UJUN_W", "UTA_IM", "UTAPB",
-    "UTA_WA", "UTMIN1", "UTMIN2", "UTTMPIN1", "UTTMPIN2", "UTTMPIN3", "UTTMPIN4", "UUTAI1",
-    "UUTAI2", "WCRIMB_1", "WCRIMB_2", "WHITE1", "WHITE2", "WHITEBG3", "WHITEIN", "WOA_1",
-    "WOA_2", "WOA_3", "YOUGAN2", "YOUGAN3", "YOUGAN", "YUFY1", "YUFY2", "ZCOAL_1",
-    "ZCOAL_2", "ZCOAL_3", "ZMIND1", "ZMIND2", "ZMIND3", "ZTRUCK", "ZZ1", "ZZ2",
-    "ZZ3", "ZZ4", "ZZ5", "ZZ6", "ZZ7", "ZZ8",
+    "NIVL_3", "NIVL_B12", "NIVL_B1", "NIVL_B22", "NIVL_B2", "NIVL",
+    "NIVL_E1", "NIVL_E2", "NIVL_E3", "NIV_TI1", "NIV_TI2", "NIV_TI3",
+    "NIV_TI4", "NIV_W", "NMKIN_1", "NMKIN_2", "NMKIN_3", "NMKIN_4",
+    "NMKIN_5", "NRTHMK", "NVDUN1", "NVDUN2", "NVDUN31", "NVDUN3", "NVDUN4",
+    "NVMIN1_1", "NVMIN1_2", "NVMKIN1", "NVMKIN21", "NVMKIN22", "NVMKIN23",
+    "NVMKIN31", "NVMKIN32", "ONNA_1", "ONNA_2", "ONNA_3", "ONNA_4",
+    "ONNA_52", "ONNA_5", "ONNA_6", "PILLAR_1", "PILLAR_2", "PILLAR_3",
+    "PRISILA", "PSDUN_1", "PSDUN_2", "PSDUN_3", "PSDUN_4", "Q_1", "Q_2",
+    "Q_3", "Q_4", "RCKT2", "RCKT32", "RCKT3", "RCKTBAS1", "RCKTBAS2",
+    "RCKT", "RCKTIN1", "RCKTIN2", "RCKTIN3", "RCKTIN4", "RCKTIN5",
+    "RCKTIN6", "RCKTIN7", "RCKTIN8", "RKT_I", "RKTINN1", "RKTINN2",
+    "RKTMIN1", "RKTMIN2", "RKTSID", "RKT_W", "ROADEND", "ROOTMAP", "ROPEST",
+    "SANDUN_1", "SANDUN_2", "SANGO1", "SANGO2", "SANGO3", "SEA", "SEMKIN_1",
+    "SEMKIN_2", "SEMKIN_3", "SEMKIN_4", "SEMKIN_5", "SEMKIN_6", "SEMKIN_7",
+    "SEMKIN_8", "SETO1", "SHIP_1", "SHIP_2", "SHPIN_22", "SHPIN_2",
+    "SHPIN_3", "SICHI", "SINBIL_1", "SINBIL_2", "SININ1_1", "SININ1_2",
+    "SININ2_1", "SININ2_2", "SININ3", "SININB1", "SININB2", "SININB31",
+    "SININB32", "SININB33", "SININB34", "SININB35", "SININB36", "SININB41",
+    "SININB42", "SININB51", "SININB52", "SKY", "SLFRST_1", "SLFRST_2",
+    "SMKIN_1", "SMKIN_2", "SMKIN_3", "SMKIN_4", "SMKIN_5", "SNINN_1",
+    "SNINN_2", "SNINN_B1", "SNMAYOR", "SNMIN1", "SNMIN2", "SNOW", "SNW_W",
+    "SOUTHMK1", "SOUTHMK2", "SPGATE", "SPIPE_1", "SPIPE_2", "STARTMAP",
+    "SUBIN_1A", "SUBIN_1B", "SUBIN_2A", "SUBIN_2B", "SUBIN_3", "TIN_1",
+    "TIN_2", "TIN_3", "TIN_4", "TRACKIN2", "TRACKIN", "TRNAD_1", "TRNAD_2",
+    "TRNAD_3", "TRNAD_4", "TRNAD_51", "TRNAD_52", "TRNAD_53", "TUNNEL_1",
+    "TUNNEL_2", "TUNNEL_3", "TUNNEL_4", "TUNNEL_5", "TUNNEL_6", "UJUNON1",
+    "UJUNON2", "UJUNON3", "UJUNON4", "UJUNON5", "UJUN_W", "UTA_IM", "UTAPB",
+    "UTA_WA", "UTMIN1", "UTMIN2", "UTTMPIN1", "UTTMPIN2", "UTTMPIN3",
+    "UTTMPIN4", "UUTAI1", "UUTAI2", "WCRIMB_1", "WCRIMB_2", "WHITE1",
+    "WHITE2", "WHITEBG1", "WHITEBG2", "WHITEBG3", "WHITEIN", "WOA_1",
+    "WOA_2", "WOA_3", "YOUGAN2", "YOUGAN3", "YOUGAN", "YUFY1", "YUFY2",
+    "ZCOAL_1", "ZCOAL_2", "ZCOAL_3", "ZMIND1", "ZMIND2", "ZMIND3", "ZTRUCK",
+    "ZZ1", "ZZ2", "ZZ3", "ZZ4", "ZZ5", "ZZ6", "ZZ7", "ZZ8",
 ]
+
+def fieldMaps(version):
+    maps = mapNames
+
+    # The FRCYO2 map (Chocobo stable disc 2/3) is only present in European
+    # versions of the game.
+    if not ff7.isEuropean(version):
+        maps.remove("FRCYO2")
+
+    # Some maps from the original Japanese release were dummied out in later
+    # versions, others were added
+    if version == ff7.Version.JO:
+        maps.remove("MDS7ST33")
+        maps.remove("MIDGAL")
+        maps.remove("NIVGATE4")
+        maps.remove("SININB34")
+        maps.remove("SININB35")
+        maps.remove("SININB36")
+        maps.remove("ZTRUCK")
+    else:
+        maps.remove("BLACKBGA")
+        maps.remove("FALLP")
+        maps.remove("ONNA_1")
+        maps.remove("ONNA_3")
+        maps.remove("ONNA_6")
+        maps.remove("WHITEBG1")
+        maps.remove("WHITEBG2")
+
+    return maps

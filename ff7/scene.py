@@ -87,14 +87,33 @@ def decodeScript(data):
 
 # Battle scene
 class Scene:
-    maxStringSize = 0x20
-
     def __init__(self, data, index):
         self.data = data
         self.index = index
 
+        if len(data) == 0x1c50:
+
+            # Old scene format (original Japanese version)
+            self.maxStringSize = 0x10
+            self.enemyDataOffset = 0x298
+            self.enemyDataSize = 0xa8
+            self.abilitiesOffset = 0x850
+            self.aiDataOffset = 0xc50
+
+        elif len(data) == 0x1e80:
+
+            # New scene format
+            self.maxStringSize = 0x20
+            self.enemyDataOffset = 0x298
+            self.enemyDataSize = 0xb8
+            self.abilitiesOffset = 0x880
+            self.aiDataOffset = 0xe80
+
+        else:
+            raise EnvironmentError, "Battle scene %d has unexpected length" % index
+
         # Extract enemy scripts
-        self.enemyScripts = self.extractScripts(0xe80, 3, len(data))
+        self.enemyScripts = self.extractScripts(self.aiDataOffset, 3, len(data))
 
     # Return the binary scene data
     def getData(self):
@@ -223,7 +242,7 @@ class Scene:
         enemies = []
 
         for i in xrange(3):
-            offset = 0x298 + i * 0xb8
+            offset = self.enemyDataOffset + i * self.enemyDataSize
             enemies.append(ff7.decodeKernelText(self.data[offset:offset + self.maxStringSize], japanese))
 
         return enemies
@@ -233,7 +252,7 @@ class Scene:
         abilities = []
 
         for i in xrange(32):
-            offset = 0x880 + i * self.maxStringSize
+            offset = self.abilitiesOffset + i * self.maxStringSize
             abilities.append(ff7.decodeKernelText(self.data[offset:offset + self.maxStringSize], japanese))
 
         return abilities
@@ -250,7 +269,7 @@ class Scene:
             if rawStringSize < self.maxStringSize:
                 rawString += '\xff' * (self.maxStringSize - rawStringSize)  # pad with 0xff bytes
 
-            offset = 0x298 + i * 0xb8
+            offset = self.enemyDataOffset + i * self.enemyDataSize
             self.data = self.data[:offset] + rawString + self.data[offset + self.maxStringSize:]
 
     # Set the ability names.
@@ -265,7 +284,7 @@ class Scene:
             if rawStringSize < self.maxStringSize:
                 rawString += '\xff' * (self.maxStringSize - rawStringSize)  # pad with 0xff bytes
 
-            offset = 0x880 + i * self.maxStringSize
+            offset = self.abilitiesOffset + i * self.maxStringSize
             self.data = self.data[:offset] + rawString + self.data[offset + self.maxStringSize:]
 
     # Return the list of message strings in the scene scripts.
@@ -340,14 +359,14 @@ class Scene:
                         script[index].setArg(struct.pack("<H", targetOffset))
 
         # Convert scripts back to binary data
-        self.insertScripts(self.enemyScripts, 0xe80, 3, len(self.data))
+        self.insertScripts(self.enemyScripts, self.aiDataOffset, 3, len(self.data))
 
 
 # Battle scene archive file (SCENE.BIN)
 class Archive:
     blockSize = 0x2000
     pointerTableSize = 0x40
-    sceneSize = 0x1e80  # constant uncompressed size
+    maxSceneSize = 0x1e80  # maximum size of uncompressed scene
 
     # Parse the scene archive from an open file object.
     def __init__(self, fileobj):
@@ -386,9 +405,9 @@ class Archive:
                 end = offsets[i + 1]
                 assert end >= start
 
-                buffer = StringIO.StringIO(block[start:end])
+                buffer = StringIO.StringIO(block[start:end].rstrip('\xff'))
                 zipper = gzip.GzipFile(fileobj = buffer, mode = "rb")
-                scene = zipper.read(self.sceneSize)
+                scene = zipper.read(self.maxSceneSize)
 
                 self.sceneData.append(scene)
                 sceneIndex += 1
