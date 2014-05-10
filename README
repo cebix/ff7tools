@@ -1,4 +1,4 @@
-FF7Tools V1.2
+FF7Tools V1.3
 =============
 
 FF7Tools is a suite of command-line translation and hacking tools for the
@@ -81,9 +81,9 @@ control files. In other words, each CD basically contains the entire game
 except for the the FMVs. To extract text and data from the game it is
 therefore sufficient to have one CD image.
 
-The tools have only been tested with the following releases of the game and
-may not work with other regional releases:
+The tools support the following releases of the game:
 
+ * Final Fantasy VII Japanese (SLPS-00700)
  * Final Fantasy VII International (Japanese, SLPS-01057)
  * Final Fantasy VII US (SCUS-94163)
  * Final Fantasy VII PAL English (SCES-00867)
@@ -91,7 +91,7 @@ may not work with other regional releases:
  * Final Fantasy VII PAL German (SCES-00869)
  * Final Fantasy VII PAL Spanish (SCES-00900)
 
-The 'trans' tool does not work with the Japanese version of the game because
+The 'trans' tool does not work with Japanese versions of the game because
 Japanese kanji encoding is not yet implemented. Dumping Japanese text with
 the 'untrans' and 'mapinfo' tools works fine, though.
 
