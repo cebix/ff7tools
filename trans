@@ -39,7 +39,7 @@ def haveTrans(transPath, subDir, fileName):
 def retrieveTrans(transPath, subDir, fileName):
     filePath = os.path.join(transPath, subDir, fileName)
 
-    f = open(filePath, "r")
+    f = open(filePath, "rU")
     lines = f.readlines()
     f.close()
 
@@ -53,7 +53,7 @@ def retrieveTrans(transPath, subDir, fileName):
 def retrieveFieldTrans(transPath, subDir, fileName):
     filePath = os.path.join(transPath, subDir, fileName)
 
-    f = open(filePath, "r")
+    f = open(filePath, "rU")
     lines = f.readlines()
     f.close()
 
