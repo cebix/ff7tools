@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 
 #
 # tim2png - Convert PlayStation TIM image to PNG format
@@ -108,7 +108,7 @@ def readTimImage(f):
             output.append(pix0)
             output.append(pix1)
 
-        image = Image.fromstring("P", (width, height), str(output), "raw", "P", 0, 1)
+        image = Image.frombytes("P", (width, height), str(output), "raw", "P", 0, 1)
         image.palette = palette
 
     elif pMode == 1:
@@ -116,7 +116,7 @@ def readTimImage(f):
         # 8-bit indexed mode, 2 pixels in each 16-bit unit
         width *= 2
 
-        image = Image.fromstring("P", (width, height), pixelData, "raw", "P", 0, 1)
+        image = Image.frombytes("P", (width, height), pixelData, "raw", "P", 0, 1)
         image.palette = palette
 
     elif pMode == 2:
@@ -124,14 +124,14 @@ def readTimImage(f):
         # 16-bit direct mode, convert from ABGR to ARGB
         output = convertABGR(pixelData)
 
-        image = Image.fromstring("RGB", (width, height), str(output), "raw", "BGR;15", 0, 1)
+        image = Image.frombytes("RGB", (width, height), str(output), "raw", "BGR;15", 0, 1)
 
     elif pMode == 3:
 
         # 24-bit direct mode, 2 pixels in three 16-bit units
         width = width * 2 / 3
 
-        image = Image.fromstring("RGB", (width, height), pixelData, "raw", "RGB", 0, 1)
+        image = Image.frombytes("RGB", (width, height), pixelData, "raw", "RGB", 0, 1)
 
     return image
 

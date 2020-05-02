@@ -42,9 +42,10 @@ The included tools are:
 The tools are entirely written in Python and have the following
 dependencies:
 
- * Python 2.7
+ * Python >= 2.7.6
+   The tools are not compatible with Python 3.
 
- * Pillow >= 2.2.1 (https://pypi.python.org/pypi/Pillow/)
+ * Pillow >= 5.1.1 (https://pypi.python.org/pypi/Pillow/)
    Used by the 'tim2png' and 'subending' tools.
 
  * NumPy >= 1.8.0 (http://www.numpy.org/)
@@ -74,12 +75,12 @@ extracted files from the filesystem of the game CDs. For extracting the
 filesystem tree of the game I recommend using the 'psxrip' tool from
 PSXImager (see link above) which preserves the XA media files the game uses.
 
-The contents of the three CDs of the game are almost identical except for
-the "MOVIE" directory, the "SNOVA" directory (only present on disc 3,
-although room for it is reserved on the first two discs as well), and some
-control files. In other words, each CD basically contains the entire game
-except for the the FMVs. To extract text and data from the game it is
-therefore sufficient to have one CD image.
+The contents of each of the three CDs of the game are almost identical
+except for the "MOVIE" directory, the "SNOVA" directory (only present on
+disc 3, although room for it is reserved on the first two discs as well),
+and some control files. In other words, each CD basically contains the
+entire game except for the the FMVs. To extract text and data from the game
+it is therefore sufficient to have one CD image.
 
 The tools support the following releases of the game:
 
@@ -118,7 +119,7 @@ When doing a retranslation of the game it is recommended that you first use
 the 'untrans' tool to dump all text, change what you want to change, and
 then use the 'trans' tool to reinsert the text into the game files. The
 section "Workflow for translation" below will give you some hints for doing
-this effectively.
+this efficiently.
 
 The 'untrans' tool extracts text from either a plain ISO or raw
 ("MODE2/2352") CD image, or a local directory (the "game directory")
@@ -182,7 +183,7 @@ The translation directory holds the following subdirectories and files:
         Various texts, mostly used during battles and in the config menu.
 
       init_name.txt
-        The initial names of the game's characters, before they are named by
+        The initial names of the party characters, before they are named by
         the player. Except for the names of Cloud ("Ex-SOLDIER"), Sephiroth
         (during the Kalm flashback), and Red XIII (whose name shows up in
         one dialog before he can be named - BLIN68_2 #154) these are unused
@@ -525,7 +526,7 @@ Window resizing
       need to add manual line breaks or page breaks ({NEW}) to reformat the
       text.
 
-  Window positions are not normally changed by 'trans' but the game itself
+  Window positions are not normally changed by 'trans', but the game itself
   will automatically shift windows upwards and to the left to make them
   entirely visible on screen. You can use the {POS} command described above
   to re-align windows, if necessary.
@@ -536,7 +537,7 @@ Warning and error messages of 'trans'
   encounter include:
 
   "Warning: no window found for string <id> of map <name>"
-    'trans' was unable not resize a field dialog window because it could not
+    'trans' was unable to resize a field dialog window because it could not
     find its window definition. See "Window resizing" above for tips.
 
   "Warning: map name string <id> in map <name> longer than 23 characters"
@@ -578,7 +579,7 @@ Warning and error messages of 'trans'
   "Unknown command '<command>' in string '<str>'"
   "Unknown command '<command>' in tutorial script"
     Either you misspelled one of the {<command>} control codes, or you used
-    it in a place where it is now allowed, such as a {POS} code which is not
+    it in a place where it is not allowed, such as a {POS} code which is not
     in the first line of a field string.
 
   "Unencodable character '<char>' in string '<str>'"
@@ -655,8 +656,8 @@ Command-line options of 'trans'
     As is widely known, Final Fantasy VII features an extensive set of
     "debug rooms" left in the game, which are normally only accessible by
     using cheat codes or by save file hacking. Since the debug rooms allow
-    jumping directly to many scenes of the game they are very useful when
-    creating mods, however.
+    jumping directly to many scenes of the game they are also very useful
+    when creating mods.
 
     When given the '-d' option, 'trans' will patch the main game executable
     (e.g. "SCUS_941.6*" for the US version) to always start the game in the
@@ -921,7 +922,7 @@ produced by the PSXImager tool 'psxrip'. The output file will be in the same
 format and have the same size as the input movie.
 
 In this particular movie, the subtitles are hard-coded into the video image
-but thankfully placed in the black bar below the actual video. So what this
+but thankfully placed in the black bar below the actual video. So what the
 tool does is to copy the audio data and upper portion of the video data of
 the movie while replacing and recompressing only the lower portion of the
 image with new subtitles.
@@ -959,7 +960,7 @@ Here are some hints for using the tool effectively and avoiding overruns:
  - If necessary, shorten the text or rearrange long lines into two shorter
    lines which are shown one after another.
  - Adjust the display time of the subtitles. For example, if a particular
-   line is to be shown up to frame 1234 but frame 1232 constantly overruns,
+   line is to be shown up to frame 1234 but frame 1233 constantly overruns,
    just blank this line two frames earlier.
  - Slightly increase the blurRadius variable in the code. Subtitles with
    more blur appear more fuzzy but compress better.

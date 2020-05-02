@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 
 #
 # Trans - Insert all translatable text of Final Fantasy VII from text files
@@ -1125,5 +1125,8 @@ try:
 except Exception, e:
 
     # Pokemon exception handler
-    print >>sys.stderr, e.message
-    sys.exit(1)
+    if e.message:
+        print >>sys.stderr, e.message
+        sys.exit(1)
+    else:
+        raise

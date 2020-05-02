@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 
 #
 # MapInfo - Extract event texts and scripts of Final Fantasy VII maps
@@ -87,7 +87,7 @@ try:
             sys.exit(0)
 
     try:
-        os.mkdir(outputDir)
+        os.makedirs(outputDir)
     except OSError, e:
         print >>sys.stderr, "Cannot create output directory '%s': %s" % (outputDir, e.strerror)
         sys.exit(1)
@@ -155,5 +155,8 @@ try:
 except Exception, e:
 
     # Pokemon exception handler
-    print >>sys.stderr, e.message
-    sys.exit(1)
+    if e.message:
+        print >>sys.stderr, e.message
+        sys.exit(1)
+    else:
+        raise
