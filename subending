@@ -1,17 +1,15 @@
-#!/usr/bin/python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 #
 # SubEnding - Replace the subtitles in the Final Fantasy VII ending movie
 #
-# Copyright (C) 2014 Christian Bauer <www.cebix.net>
+# Copyright (C) Christian Bauer <www.cebix.net>
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
 # copyright notice and this permission notice appear in all copies.
 #
-
-from __future__ import division  # quantization requires round-to-zero integer division
 
 __version__ = "1.3"
 
@@ -27,7 +25,7 @@ from PIL import ImageFilter
 
 
 # Subtitle font path
-fontFileName = "/usr/share/fonts/liberation/LiberationSans-Bold.ttf"
+fontFileName = "/usr/share/fonts/liberation-sans/LiberationSans-Bold.ttf"
 
 # Subtitle font size
 fontSize = 30
@@ -39,117 +37,117 @@ blurRadius = 1.5
 # (German translation as an example)
 subTiming = {
           # Cloud
-     606: u"…Der Lifestream?",
-     676: u"",
-    1215: u"…Ich denke, ich verstehe jetzt.",
-    1245: u"",
+     606: "…Der Lifestream?",
+     676: "",
+    1215: "…Ich denke, ich verstehe jetzt.",
+    1245: "",
 
           # Tifa
-    1255: u"Hm?",
-    1275: u"",
+    1255: "Hm?",
+    1275: "",
 
           # Cloud
-    1297: u"Die Antwort des Planeten…",
-    1348: u"Das verheißene Land…",
-    1385: u"",
-    1402: u"Ich glaube…",
-    1432: u"dort können wir sie finden.",
-    1462: u"",
+    1297: "Die Antwort des Planeten…",
+    1348: "Das verheißene Land…",
+    1385: "",
+    1402: "Ich glaube…",
+    1432: "dort können wir sie finden.",
+    1462: "",
 
           # Tifa
-    1492: u"Ja, gehen wir zu ihr.",
-    1533: u"",
+    1492: "Ja, gehen wir zu ihr.",
+    1533: "",
 
           # Cloud
-    1786: u"Wo sind denn die anderen?",
-    1822: u"",
+    1786: "Wo sind denn die anderen?",
+    1822: "",
 
           # Barrett
-    1856: u"Eeeey!",
-    1885: u"",
+    1856: "Eeeey!",
+    1885: "",
 
           # Tifa
-    1895: u"Alle sind OK! Was ein Glück!",
-    1956: u"",
+    1895: "Alle sind OK! Was ein Glück!",
+    1956: "",
 
           # Barrett to Tifa/Cloud
-    1966: u"Ihr habt's wohl auch gepackt.",
+    1966: "Ihr habt's wohl auch gepackt.",
 
           # Barrett to Cid
-    2026: u"Aber… Wie komm'wer hier raus?",
-    2106: u"",
+    2026: "Aber… Wie komm'wer hier raus?",
+    2106: "",
 
           # Red XIII
-    2115: u"Holy wird bald aktiv.",
-    2160: u"Und dann wird hier alles–",
-    2196: u"",
+    2115: "Holy wird bald aktiv.",
+    2160: "Und dann wird hier alles–",
+    2196: "",
 
           # Cid
-    2206: u"Auwacka!",
-    2226: u"Wo is meene Jlücksfee hin…?",
-    2275: u"",
-    3031: u"Kacke!",
-    3068: u"",
+    2206: "Auwacka!",
+    2226: "Wo is meene Jlücksfee hin…?",
+    2275: "",
+    3031: "Kacke!",
+    3068: "",
 
           # Malin
-    3555: u"Das Blumenmädchen?",
-    3586: u"",
+    3555: "Das Blumenmädchen?",
+    3586: "",
 
           # Barrett
-    5156: u"Ey!",
-    5195: u"Was wird jetzt aus Midgar?",
-    5239: u"",
+    5156: "Ey!",
+    5195: "Was wird jetzt aus Midgar?",
+    5239: "",
 
           # Barrett to Cait Sith
-    5249: u"Sieht echt übel aus, oder?",
-    5289: u"",
+    5249: "Sieht echt übel aus, oder?",
+    5289: "",
 
           # Cait Sith
-    5299: u"Ich hab' die Bewohner fei alle",
-    5330: u"in die Slums evakuieren lassen.",
-    5360: u"",
-    5373: u"Aber so wie's ausschaut…",
-    5428: u"",
+    5299: "Ich hab' die Bewohner fei alle",
+    5330: "in die Slums evakuieren lassen.",
+    5360: "",
+    5373: "Aber so wie's ausschaut…",
+    5428: "",
 
           # Red XIII
-    5450: u"Holy kam also zu spät.",
-    5510: u"",
-    5512: u"Der Meteor ist bereits zu nah.",
-    5572: u"",
-    5575: u"Wir haben auf Holy gehofft,",
-    5606: u"und nun bewirkt es das Gegenteil.",
-    5636: u"",
-    5644: u"Es geht nicht um Midgar,",
-    5669: u"sondern um unseren Planeten…",
-    5714: u"",
+    5450: "Holy kam also zu spät.",
+    5510: "",
+    5512: "Der Meteor ist bereits zu nah.",
+    5572: "",
+    5575: "Wir haben auf Holy gehofft,",
+    5606: "und nun bewirkt es das Gegenteil.",
+    5636: "",
+    5644: "Es geht nicht um Midgar,",
+    5669: "sondern um unseren Planeten…",
+    5714: "",
 
           # Tifa
-    5906: u"Nanu?!",
-    5921: u"",
+    5906: "Nanu?!",
+    5921: "",
 
           # (possibly Barrett)
-    6321: u"Was is'n DAS…?",
-    6391: u"",
+    6321: "Was is'n DAS…?",
+    6391: "",
 
           # Cloud
-    6401: u"…Der Lifestream.",
-    6445: u"",
+    6401: "…Der Lifestream.",
+    6445: "",
 
           # Malin
-    6715: u"Er kommt.",
-    6751: u"",
+    6715: "Er kommt.",
+    6751: "",
 }
 
 
 # Print usage information and exit.
 def usage(exitcode, error = None):
-    print "Usage: %s [OPTION...] <fromfile.MOV> <tofile.MOV>" % os.path.basename(sys.argv[0])
-    print "  -f, --fast                      Keep original subtitles unless overridden"
-    print "  -V, --version                   Display version information and exit"
-    print "  -?, --help                      Show this help message"
+    print("Usage: %s [OPTION...] <fromfile.MOV> <tofile.MOV>" % os.path.basename(sys.argv[0]))
+    print("  -f, --fast                      Keep original subtitles unless overridden")
+    print("  -V, --version                   Display version information and exit")
+    print("  -?, --help                      Show this help message")
 
     if error is not None:
-        print >>sys.stderr, "\nError:", error
+        print("\nError:", error, file=sys.stderr)
 
     sys.exit(exitcode)
 
@@ -469,18 +467,18 @@ class Subtitler:
         draw = ImageDraw.Draw(im)
 
         # Draw centered text
-        size = draw.textsize(text, self.font)
-        x = (self.width - size[0]) // 2
+        size = draw.textlength(text, self.font)
+        x = (self.width - size) // 2
         y = (self.height - fontSize) // 2 + 1
 
         if x < 0:
-            print >>sys.stderr, "Warning: string '%s' too wide" % text
+            print("Warning: string '%s' too wide" % text, file=sys.stderr)
 
         draw.text((x, y), text, 255, self.font)
 
         # Blur and scale to requested size
         im = im.filter(ImageFilter.GaussianBlur(blurRadius))
-        im = im.resize((self.width, self.height), Image.ANTIALIAS)
+        im = im.resize((self.width, self.height), Image.LANCZOS)
 
         # Retrieve luminance data and level-shift it
         self.lumaData = numpy.array(im.getdata()).reshape((self.height, self.width)) - 128
@@ -550,7 +548,7 @@ class WriteBitStream:
                 self.bufferedBits -= 16
                 self.offset += 2
         except IndexError:
-            raise RuntimeError, "Frame data overrun"
+            raise RuntimeError("Frame data overrun")
 
     # Flush any outstanding bits.
     def flush(self):
@@ -581,8 +579,8 @@ def encodeMacroblock(block, frameQ, outStream):
     r = numpy.dot(numpy.dot(dctMatrix, block), dctMatrixT)
 
     # Scale and quantize
-    for y in xrange(8):
-        for x in xrange(8):
+    for y in range(8):
+        for x in range(8):
             if x or y:
 
                 # AC coefficient
@@ -655,12 +653,12 @@ def processFrame(inFrame, width, height, subtitler):
     # Process all macroblocks of frame
     numCodes = 0
 
-    for xBlock in xrange(width // 16):
-        for yBlock in xrange(height // 16):
+    for xBlock in range(width // 16):
+        for yBlock in range(height // 16):
             isSubtitleBlock = (yBlock * 16 >= subY)
 
             # Copy or skip 6 DCT blocks (Cr, Cb, 4*Y) of the input stream
-            for blockNum in xrange(6):
+            for blockNum in range(6):
 
                 # DC coefficient
                 dc = inStream.read(10)
@@ -719,7 +717,7 @@ def processFrame(inFrame, width, height, subtitler):
             if isSubtitleBlock:
 
                 # Write empty Cr, Cb blocks
-                for blockNum in xrange(2):
+                for blockNum in range(2):
                     outStream.write(0, 10)    # DC coefficient = 0
                     outStream.write(0b10, 2)  # end of block
                     numCodes += 2
@@ -755,7 +753,7 @@ fastMode = False
 
 for arg in sys.argv[1:]:
     if arg == "--version" or arg == "-V":
-        print "SubEnding", __version__
+        print("SubEnding", __version__)
         sys.exit(0)
     elif arg == "--help" or arg == "-?":
         usage(0)
@@ -778,7 +776,7 @@ if outputFileName is None:
 
 # Do a preflight of the subtitles, to check for text length
 subtitler = Subtitler(subWidth, subHeight)
-for n, text in subTiming.iteritems():
+for n, text in subTiming.items():
     subtitler.setText(text)
 
 subtitler.setText("")
@@ -786,15 +784,15 @@ subtitler.setText("")
 # Open the input file
 try:
     inputFile = open(inputFileName, "rb")
-except IOError, e:
-    print >>sys.stderr, "Error opening file '%s': %s" % (inputFileName, e.strerror)
+except IOError as e:
+    print("Error opening file '%s': %s" % (inputFileName, e.strerror), file=sys.stderr)
     sys.exit(1)
 
 # Create the output file
 try:
     outputFile = open(outputFileName, "wb")
-except IOError, e:
-    print >>sys.stderr, "Error creating file '%s': %s" % (outputFileName, e.strerror)
+except IOError as e:
+    print("Error creating file '%s': %s" % (outputFileName, e.strerror), file=sys.stderr)
     sys.exit(1)
 
 # Process the entire movie
@@ -844,18 +842,18 @@ try:
 
             # Process completed frames
             if chunkNumber == chunksInFrame - 1:
-                print "Frame %d:" % frameNumber,
+                print("Frame %d:" % frameNumber, end=' ')
 
                 # Create subtitle graphics
                 try:
                     text = subTiming[frameNumber]
                     subtitler.setText(text)
-                    print "'%s'" % text,
+                    print("'%s'" % text, end=' ')
                 except KeyError:
                     pass
 
                 maxDataSize = chunksInFrame * chunkDataSize
-                print "%.2f%%" % (frameDataSize * 100 / maxDataSize),
+                print("%.2f%%" % (frameDataSize * 100 / maxDataSize), end=' ')
 
                 if fastMode and not subtitler.text:
 
@@ -868,10 +866,10 @@ try:
                     # Insert new subtitles into frame
                     newFrameData, newFrameDataSize = processFrame(frameData, frameWidth, frameHeight, subtitler)
 
-                print "-> %.2f%%" % (newFrameDataSize * 100 / maxDataSize)
+                print("-> %.2f%%" % (newFrameDataSize * 100 / maxDataSize))
 
                 # Split into chunks and write to output file
-                for chunkNumber in xrange(chunksInFrame):
+                for chunkNumber in range(chunksInFrame):
 
                     # Mux in the buffered audio
                     if muxCounter == audioMuxRate:
@@ -881,12 +879,12 @@ try:
                         muxCounter += 1
 
                     # Write the XA subheader
-                    subheader = bytearray("\x01\x01\x48\x00\x01\x01\x48\x00")  # XA realtime data sector, channel 1
+                    subheader = bytearray(b"\x01\x01\x48\x00\x01\x01\x48\x00")  # XA realtime data sector, channel 1
                     outputFile.write(subheader)
 
                     # Write the chunk header
                     chunkHeader = struct.pack("<LHHLLHH", magic, chunkNumber, chunksInFrame, frameNumber, newFrameDataSize, frameWidth, frameHeight)
-                    chunkHeader += '\0' * 12
+                    chunkHeader += b'\0' * 12
                     outputFile.write(chunkHeader)
 
                     # Write the chunk data
@@ -894,10 +892,10 @@ try:
                     outputFile.write(newFrameData[startInFrame:startInFrame + chunkDataSize])
 
                     # Write dummy EDC/ECC data (psxbuild will recalculate it)
-                    outputFile.write('\0' * edcSize)
+                    outputFile.write(b'\0' * edcSize)
 
         else:
-            print >>sys.stderr, "Unknown sector encountered"
+            print("Unknown sector encountered", file=sys.stderr)
             sys.exit(1)
 
     # Flush the audio buffer and close the output file
@@ -905,13 +903,10 @@ try:
         outputFile.write(audioBuffer.pop(0))
 
     outputFile.close()
-    print "Done."
+    print("Done.")
 
-except Exception, e:
+except Exception as e:
 
     # Pokemon exception handler
-    if e.message:
-        print >>sys.stderr, e.message
-        sys.exit(1)
-    else:
-        raise
+    print(e, file=sys.stderr)
+    sys.exit(1)

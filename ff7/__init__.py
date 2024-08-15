@@ -1,7 +1,7 @@
 #
 # ff7 - Utility package for working with Final Fantasy VII data
 #
-# Copyright (C) 2014 Christian Bauer <www.cebix.net>
+# Copyright (C) Christian Bauer <www.cebix.net>
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -17,18 +17,18 @@ import re
 import gzip
 import zlib
 import struct
-import StringIO
+import io
 
-import lzss
-import binlz
-import ff7text
-import kernel
-import field
-import tutorial
-import scene
-import world
-import data
-import cd
+from . import lzss
+from . import binlz
+from . import ff7text
+from . import kernel
+from . import field
+from . import tutorial
+from . import scene
+from . import world
+from . import data
+from . import cd
 
 
 def _enum(**enums):
@@ -59,7 +59,7 @@ def _retrieveFileFromImage(image, subDir, fileName):
 
     data = image.readFile(filePath)
 
-    f = StringIO.StringIO(data)
+    f = io.BytesIO(data)
     f.name = filePath  # kernel.Archive needs this
     return f
 
@@ -113,28 +113,28 @@ def checkDisc(discPath):
             break
 
     if f is None:
-        raise EnvironmentError, "Cannot find DISKINFO.CNF file (not a Final Fantasy VII image?)"
+        raise EnvironmentError("Cannot find DISKINFO.CNF file (not a Final Fantasy VII image?)")
 
     discId = f.read(8)
 
-    if discId == "DISK0001":
+    if discId == b"DISK0001":
         discNumber = 1
-    elif discId == "DISK0002":
+    elif discId == b"DISK0002":
         discNumber = 2
-    elif discId == "DISK0003":
+    elif discId == b"DISK0003":
         discNumber = 3
     else:
-        raise EnvironmentError, "Unknown disc ID '%s' in DISKINFO.CNF" % discId
+        raise EnvironmentError("Unknown disc ID '%s' in DISKINFO.CNF" % discId)
 
     # Find the name of the executable
     f = retrieveFile(discPath, "", "SYSTEM.CNF")
     line = f.readline()
 
-    m = re.match(r"BOOT = cdrom:\\([\w.]+);1", line)
+    m = re.match(br"BOOT = cdrom:\\([\w.]+);1", line)
     if not m:
-        raise EnvironmentError, "Unrecognized line '%s' in SYSTEM.CNF" % line
+        raise EnvironmentError("Unrecognized line '%s' in SYSTEM.CNF" % line)
 
-    execFileName = m.group(1)
+    execFileName = m.group(1).decode("ascii")
 
     if execFileName in ["SCES_008.67", "SCES_108.67", "SCES_208.67"]:
         version = Version.EN
@@ -151,24 +151,24 @@ def checkDisc(discPath):
     elif execFileName in ["SLPS_007.00", "SLPS_007.01", "SLPS_007.02"]:
         version = Version.JO
     else:
-        raise EnvironmentError, "Unrecognized game version"
+        raise EnvironmentError("Unrecognized game version")
 
     return (version, discNumber, execFileName)
 
 
 # Decompress an 8-bit string from GZIP format.
 def decompressGzip(data):
-    buffer = StringIO.StringIO(data)
+    buffer = io.BytesIO(data)
     zipper = gzip.GzipFile(fileobj = buffer, mode = "rb")
     return zipper.read()
 
 
 # Compress an 8-bit string to GZIP format.
 def compressGzip(data):
-    buffer = StringIO.StringIO()
+    buffer = io.BytesIO()
     zipper = zlib.compressobj(zlib.Z_BEST_COMPRESSION, zlib.DEFLATED, -zlib.MAX_WBITS, 6, 0)  # memlevel = 6 seems to produce smaller output
 
-    buffer.write("\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x00")
+    buffer.write(b"\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x00")
     buffer.write(zipper.compress(data))
     buffer.write(zipper.flush())
     buffer.write(struct.pack("<L", zlib.crc32(data) & 0xffffffff))

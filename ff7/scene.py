@@ -1,7 +1,7 @@
 #
 # ff7.scene - Final Fantasy VII battle scene handling
 #
-# Copyright (C) 2014 Christian Bauer <www.cebix.net>
+# Copyright (C) Christian Bauer <www.cebix.net>
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -10,7 +10,7 @@
 
 import struct
 import gzip
-import StringIO
+import io
 
 import ff7
 
@@ -110,7 +110,7 @@ class Scene:
             self.aiDataOffset = 0xe80
 
         else:
-            raise EnvironmentError, "Battle scene %d has unexpected length" % index
+            raise EnvironmentError("Battle scene %d has unexpected length" % index)
 
         # Extract enemy scripts
         self.enemyScripts = self.extractScripts(self.aiDataOffset, 3, len(data))
@@ -128,7 +128,7 @@ class Scene:
         # Process all entities
         entitiesTable = struct.unpack_from("<%dH" % numEntities, self.data, entitiesOffset)
 
-        for i in xrange(numEntities):
+        for i in range(numEntities):
             offset = entitiesTable[i]
 
             if offset == 0xffff:
@@ -143,13 +143,13 @@ class Scene:
                 # The start of the next entity's table (or the end of the
                 # data) is the upper offset limit for scripts of this entity
                 nextTableOffset = maxOffset
-                for j in xrange(i + 1, numEntities):
+                for j in range(i + 1, numEntities):
                     if entitiesTable[j] != 0xffff:
                         nextTableOffset = entitiesOffset + entitiesTable[j]
                         break
 
                 # Process all scripts in the script table
-                for j in xrange(16):
+                for j in range(16):
                     offset = scriptsTable[j]
 
                     if offset == 0xffff:
@@ -161,7 +161,7 @@ class Scene:
                         # next entity's script table) is the upper offset
                         # limit for the script
                         nextScriptOffset = nextTableOffset
-                        for k in xrange(j + 1, 16):
+                        for k in range(j + 1, 16):
                             if scriptsTable[k] != 0xffff:
                                 nextScriptOffset = tableOffset + scriptsTable[k]
                                 break
@@ -170,7 +170,7 @@ class Scene:
                         scriptData = self.data[scriptOffset:nextScriptOffset]
 
                         # Remove trailing 0xff bytes
-                        while scriptData[-1] == '\xff':
+                        while scriptData[-1] == 0xff:
                             scriptData = scriptData[:-1]
 
                         scriptsOfEntity.append(decodeScript(bytearray(scriptData)))
@@ -182,55 +182,55 @@ class Scene:
     # Insert list of entity scripts into binary scene data.
     def insertScripts(self, scripts, entitiesOffset, numEntities, maxOffset):
         entityTable = []
-        entityData = ""
+        entityData = bytearray()
         tableOffset = numEntities * 2
 
-        for i in xrange(numEntities):
+        for i in range(numEntities):
             scriptsOfEntity = scripts[i]
 
             if scriptsOfEntity is None:
                 entityTable.append(0xffff)  # no entity
             else:
                 scriptsTable = []
-                scriptData = ""
+                scriptData = bytearray()
                 scriptOffset = 32
 
-                for j in xrange(16):
+                for j in range(16):
                     script = scriptsOfEntity[j]
                     if script is None:
                         scriptsTable.append(0xffff)  # no script
                     else:
-                        code = "".join([str(i.code) for i in script])
-                        scriptData += code
+                        code = b"".join([i.code for i in script])
+                        scriptData.extend(code)
 
                         scriptsTable.append(scriptOffset)
                         scriptOffset += len(code)
 
                 if len(scriptData) % 2:
-                    scriptData += '\xff'  # align to 16-bit boundary
+                    scriptData.append(0xff)  # align to 16-bit boundary
                     scriptOffset += 1
 
                 # Append scripts table and all script data to entity data
                 for offset in scriptsTable:
-                    entityData += struct.pack("<H", offset)
+                    entityData.extend(struct.pack("<H", offset))
 
-                entityData += scriptData
+                entityData.extend(scriptData)
 
                 entityTable.append(tableOffset)
                 tableOffset += scriptOffset
 
         # Construct entity table and insert into scene data together with
         # entity data
-        insertData = ""
+        insertData = bytearray()
         for offset in entityTable:
-            insertData += struct.pack("<H", offset)
-        insertData += entityData
+            insertData.extend(struct.pack("<H", offset))
+        insertData.extend(entityData)
 
         targetSize = maxOffset - entitiesOffset
         assert len(insertData) <= targetSize
 
         if len(insertData) < targetSize:
-            insertData += '\xff' * (targetSize - len(insertData))  # pad with 0xff bytes
+            insertData.extend(bytes([0xff] * (targetSize - len(insertData))))  # pad with 0xff bytes
 
         prevDataSize = len(self.data)
 
@@ -241,7 +241,7 @@ class Scene:
     def getEnemyNames(self, japanese = False):
         enemies = []
 
-        for i in xrange(3):
+        for i in range(3):
             offset = self.enemyDataOffset + i * self.enemyDataSize
             enemies.append(ff7.decodeKernelText(self.data[offset:offset + self.maxStringSize], japanese))
 
@@ -251,7 +251,7 @@ class Scene:
     def getAbilityNames(self, japanese = False):
         abilities = []
 
-        for i in xrange(32):
+        for i in range(32):
             offset = self.abilitiesOffset + i * self.maxStringSize
             abilities.append(ff7.decodeKernelText(self.data[offset:offset + self.maxStringSize], japanese))
 
@@ -259,30 +259,30 @@ class Scene:
 
     # Set the enemy names.
     def setEnemyNames(self, enemies, japanese = False):
-        for i in xrange(3):
+        for i in range(3):
             rawString = ff7.encodeKernelText(enemies[i], japanese)
             rawStringSize = len(rawString)
 
             if rawStringSize > self.maxStringSize:
-                raise EnvironmentError, "Enemy name '%s' in scene %d is too long when encoded (%d > %d bytes)" % (enemies[i], self.index, rawStringSize, self.maxStringSize)
+                raise EnvironmentError("Enemy name '%s' in scene %d is too long when encoded (%d > %d bytes)" % (enemies[i], self.index, rawStringSize, self.maxStringSize))
 
             if rawStringSize < self.maxStringSize:
-                rawString += '\xff' * (self.maxStringSize - rawStringSize)  # pad with 0xff bytes
+                rawString += bytes([0xff] * (self.maxStringSize - rawStringSize))  # pad with 0xff bytes
 
             offset = self.enemyDataOffset + i * self.enemyDataSize
             self.data = self.data[:offset] + rawString + self.data[offset + self.maxStringSize:]
 
     # Set the ability names.
     def setAbilityNames(self, abilities, japanese = False):
-        for i in xrange(32):
+        for i in range(32):
             rawString = ff7.encodeKernelText(abilities[i], japanese)
             rawStringSize = len(rawString)
 
             if rawStringSize > self.maxStringSize:
-                raise EnvironmentError, "Ability name '%s' in scene %d is too long when encoded (%d > %d bytes)" % (abilities[i], self.index, rawStringSize, self.maxStringSize)
+                raise EnvironmentError("Ability name '%s' in scene %d is too long when encoded (%d > %d bytes)" % (abilities[i], self.index, rawStringSize, self.maxStringSize))
 
             if rawStringSize < self.maxStringSize:
-                rawString += '\xff' * (self.maxStringSize - rawStringSize)  # pad with 0xff bytes
+                rawString += bytes([0xff] * (self.maxStringSize - rawStringSize))  # pad with 0xff bytes
 
             offset = self.abilitiesOffset + i * self.maxStringSize
             self.data = self.data[:offset] + rawString + self.data[offset + self.maxStringSize:]
@@ -301,7 +301,7 @@ class Scene:
 
                 for instr in script:
                     if instr.op == Op.MES:
-                        rawString = str(instr.code[1:])
+                        rawString = instr.code[1:]
                         strings.append(ff7.decodeKernelText(rawString, japanese))
 
         return strings
@@ -330,7 +330,7 @@ class Scene:
                 # Find the target instruction indexes of all jumps
                 jumpMap = {}  # maps index of jump instruction to index of target
 
-                for index in xrange(len(script)):
+                for index in range(len(script)):
                     instr = script[index]
 
                     if instr.op in [Op.JMPZ, Op.JMPNE, Op.JMP]:
@@ -339,7 +339,7 @@ class Scene:
                         jumpMap[index] = targetIndex
 
                 # Replace the strings in all MES instructions
-                for index in xrange(len(script)):
+                for index in range(len(script)):
                     if script[index].op == Op.MES:
                         rawString = ff7.encodeKernelText(strings[currentString], japanese)
                         script[index].setArg(rawString)
@@ -347,12 +347,12 @@ class Scene:
 
                 # Recalculate all instruction offsets
                 offset = 0
-                for index in xrange(len(script)):
+                for index in range(len(script)):
                     script[index].setOffset(offset)
                     offset += script[index].size
 
                 # Fixup the target offsets of jumps
-                for index in xrange(len(script)):
+                for index in range(len(script)):
                     if script[index].op in [Op.JMPZ, Op.JMPNE, Op.JMP]:
                         targetIndex = jumpMap[index]
                         targetOffset = script[targetIndex].offset
@@ -400,12 +400,12 @@ class Archive:
             self.sceneIndexTable.append(sceneIndex)
 
             # Extract all scenes in the block
-            for i in xrange(numScenes):
+            for i in range(numScenes):
                 start = offsets[i]
                 end = offsets[i + 1]
                 assert end >= start
 
-                buffer = StringIO.StringIO(block[start:end].rstrip('\xff'))
+                buffer = io.BytesIO(block[start:end].rstrip(b'\xff'))
                 zipper = gzip.GzipFile(fileobj = buffer, mode = "rb")
                 scene = zipper.read(self.maxSceneSize)
 
@@ -438,7 +438,7 @@ class Archive:
         numScenes = len(self.sceneData)
 
         # Process all scenes
-        block = ""
+        block = bytearray()
         pointers = []
         firstIndexInBlock = 0
 
@@ -456,7 +456,7 @@ class Archive:
                 # Compress next scene
                 cmpData = ff7.compressGzip(self.sceneData[sceneIndex])
                 if len(cmpData) % 4 != 0:
-                    cmpData += '\xff' * (4 - len(cmpData) % 4)  # pad scene to 4-byte boundary
+                    cmpData += bytes([0xff] * (4 - len(cmpData) % 4))  # pad scene to 4-byte boundary
 
                 if self.pointerTableSize + len(block) + len(cmpData) > self.blockSize:
 
@@ -468,17 +468,17 @@ class Archive:
                 # Write current block to file
                 for p in pointers:
                     fileobj.write(struct.pack("<L", p >> 2))
-                for i in xrange(16 - len(pointers)):
+                for i in range(16 - len(pointers)):
                     fileobj.write(struct.pack("<L", 0xffffffff))
 
                 if len(block) < self.blockSize - self.pointerTableSize:
-                    block += '\xff' * (self.blockSize - self.pointerTableSize - len(block))  # pad with 0xff bytes
+                    block.extend(bytes([0xff] * (self.blockSize - self.pointerTableSize - len(block))))  # pad with 0xff bytes
 
                 fileobj.write(block)
 
                 self.sceneIndexTable.append(firstIndexInBlock)
 
-                block = ""
+                block = bytearray()
                 pointers = []
                 firstIndexInBlock = sceneIndex
 
@@ -491,6 +491,6 @@ class Archive:
 
                 # Add compressed scene to block
                 pointers.append(len(block) + self.pointerTableSize)
-                block += cmpData
+                block.extend(cmpData)
 
                 sceneIndex += 1

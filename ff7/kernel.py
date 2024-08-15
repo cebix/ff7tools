@@ -1,7 +1,7 @@
 #
 # ff7.kernel - Final Fantasy VII kernel data handling
 #
-# Copyright (C) 2014 Christian Bauer <www.cebix.net>
+# Copyright (C) Christian Bauer <www.cebix.net>
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -11,13 +11,13 @@
 import struct
 
 import ff7
-import ff7text
+from . import ff7text
 
 
 # Kernel archive file, stores data in GZIP format
 class ArchiveFile:
 
-    def __init__(self, dirID, index, cmpData = "", rawDataSize = 0):
+    def __init__(self, dirID, index, cmpData = b"", rawDataSize = 0):
         self.dirID = dirID
         self.index = index
         self.cmpData = cmpData
@@ -73,7 +73,7 @@ class Archive:
             if f.dirID == dirID and f.index == index:
                 return f
 
-        raise IndexError, "No file with directory ID %d, index %d in archive '%s'" % (dirID, index, self.name)
+        raise IndexError("No file with directory ID %d, index %d in archive '%s'" % (dirID, index, self.name))
 
     # Return the list of all files in the archive.
     def getFiles(self):
@@ -85,7 +85,7 @@ class Archive:
 
     # Add a file, possibly replacing a file with the same directory ID and index.
     def addFile(self, f):
-        for i in xrange(len(self.fileList)):
+        for i in range(len(self.fileList)):
             if self.fileList[i].dirID == f.dirID and self.fileList[i].index == f.index:
                 self.fileList[i] = f
                 return
@@ -122,7 +122,7 @@ class StringList:
 
         # Parse the offset table
         offsets = []
-        for i in xrange(numStrings):
+        for i in range(numStrings):
             offsets.append(struct.unpack_from("<H", data, i*2)[0])
 
         # Extract the strings
@@ -135,7 +135,7 @@ class StringList:
     # of the extracted string and a flag which indicates that the end of the
     # string has been reached.
     def _extract(self, data, startOffset, endOffset):
-        s = ""
+        s = b""
         endOfString = False
 
         i = startOffset
@@ -143,10 +143,10 @@ class StringList:
             c = data[i]
             i += 1
 
-            if c == '\xf9':
+            if c == 0xf9:
 
                 # Reference to previous input data (poor man's dictionary compression...)
-                c = ord(data[i])
+                c = data[i]
                 i += 1
 
                 refLength = (c >> 6)*2 + 4
@@ -161,22 +161,22 @@ class StringList:
                     endOfString = True
                     break
 
-            elif c >= '\xea' and c <= '\xf0':
+            elif c >= 0xea and c <= 0xf0:
 
                 # Kernel variable code, copy two argument bytes verbatim
                 if i >= endOffset - 1:
-                    raise IndexError, "Premature end of kernel string in variable reference"
+                    raise IndexError("Premature end of kernel string in variable reference")
 
-                s += c
+                s += bytes([c])
                 s += data[i:i+2]
                 i += 2
 
             else:
 
                 # Regular character, append it
-                s += c
+                s += bytes([c])
 
-                if c == '\xff':
+                if c == 0xff:
 
                     # End of string reached, stop extracting
                     endOfString = True
@@ -206,7 +206,7 @@ class StringList:
 
         # Encode all strings
         offsets = []
-        data = ""
+        data = bytearray()
 
         for string in self.stringList:
             rawString = ff7text.encode(string, False, self.japanese)
@@ -229,29 +229,29 @@ class StringList:
                 while i < len(rawString):
                     c = rawString[i]
 
-                    if c >= '\xea' and c <= '\xf0':
+                    if c >= 0xea and c <= 0xf0:
 
                         # Kernel variable code, copy verbatim
-                        data += rawString[i:i+3]
+                        data.extend(rawString[i:i+3])
                         i += 3
 
-                    elif c == '\xf8':
+                    elif c == 0xf8:
 
                         # Text box color code, copy verbatim
-                        data += rawString[i:i+2]
+                        data.extend(rawString[i:i+2])
                         i += 2
 
                     elif compress:
 
                         # Look for 10/8/6/4-byte substring in last 64 bytes of data
                         found = False
-                        for refLength in xrange(10, 2, -2):
+                        for refLength in range(10, 2, -2):
                             searchFor = rawString[i:i + refLength]
                             if len(searchFor) < refLength:
                                 continue
 
                             # Don't search for control codes; the game cannot resolve them
-                            if any((x >= '\xe0' and x <= '\xfe') for x in searchFor):
+                            if any((x >= 0xe0 and x <= 0xfe) for x in searchFor):
                                 continue
 
                             searchStart = len(data) - 64
@@ -262,8 +262,8 @@ class StringList:
                             if refOffset >= 0:
 
                                 # Found, encode reference
-                                data += '\xf9'
-                                data += chr(((refLength - 4) << 5) | (len(data) - refOffset - 2))
+                                data.append(0xf9)
+                                data.append(((refLength - 4) << 5) | (len(data) - refOffset - 2))
 
                                 i += refLength
 
@@ -273,21 +273,21 @@ class StringList:
                         if not found:
 
                             # Encode literal value
-                            data += c
+                            data.append(c)
                             i += 1
 
                     else:
 
                         # Regular character
-                        data += c
+                        data.append(c)
                         i += 1
 
         if len(data) % 2:
-            data += '\xff'  # align to 16-bit boundary
+            data.append(0xff)  # align to 16-bit boundary
 
         # Encode the offset table
-        offsetData = ""
+        offsetData = bytearray()
         for offset in offsets:
-            offsetData += struct.pack("<H", offset + numStrings*2)
+            offsetData.extend(struct.pack("<H", offset + numStrings*2))
 
         return offsetData + data

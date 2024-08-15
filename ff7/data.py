@@ -1,7 +1,7 @@
 #
 # ff7.data - Final Fantasy VII translation-related data tables
 #
-# Copyright (C) 2014 Christian Bauer <www.cebix.net>
+# Copyright (C) Christian Bauer <www.cebix.net>
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above

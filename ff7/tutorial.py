@@ -1,7 +1,7 @@
 #
 # ff7.tutorial - Final Fantasy VII tutorial handling
 #
-# Copyright (C) 2014 Christian Bauer <www.cebix.net>
+# Copyright (C) Christian Bauer <www.cebix.net>
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -12,28 +12,28 @@ import sys
 import struct
 import re
 
-import ff7text
+from . import ff7text
 
 
 # Tutorial script opcodes
 opcodes = {
-    # '\x00' - {WAIT <arg>}
-    '\x02': u"{UP}",
-    '\x03': u"{DOWN}",
-    '\x04': u"{LEFT}",
-    '\x05': u"{RIGHT}",
-    '\x06': u"{MENU}",
-    '\x07': u"{CANCEL}",
-    '\x09': u"{OK}",
-    '\x0a': u"{PREV}",
-    '\x0c': u"{NEXT}",
-    # '\x10' - text
-    # '\x11' - end of script
-    # '\x12' - {WINDOW <x> <y>}
+    # 0x00 - {WAIT <arg>}
+    0x02: "{UP}",
+    0x03: "{DOWN}",
+    0x04: "{LEFT}",
+    0x05: "{RIGHT}",
+    0x06: "{MENU}",
+    0x07: "{CANCEL}",
+    0x09: "{OK}",
+    0x0a: "{PREV}",
+    0x0c: "{NEXT}",
+    # 0x10 - text
+    # 0x11 - end of script
+    # 0x12 - {WINDOW <x> <y>}
 }
 
 # Inverse mapping of tutorial commands to opcodes
-commands = {v:k for k, v in opcodes.iteritems() if v}
+commands = {v:k for k, v in opcodes.items() if v}
 
 
 # Tutorial script
@@ -58,39 +58,39 @@ class Script:
             c = data[i]
             i += 1
 
-            if c == '\x11':
+            if c == 0x11:
 
                 # End of script
                 break
 
-            elif c == '\x00':
+            elif c == 0x00:
 
                 # WAIT <arg>
                 if i >= dataSize - 1:
-                    raise IndexError, "Spurious WAIT command in tutorial data"
+                    raise IndexError("Spurious WAIT command in tutorial data")
 
                 arg = struct.unpack_from("<H", data, i)
                 i += 2
 
-                script.append(u"{WAIT %d}" % arg)
+                script.append("{WAIT %d}" % arg)
 
-            elif c == '\x10':
+            elif c == 0x10:
 
                 # Text string
-                end = data.index('\xff', i)
+                end = data.index(b'\xff', i)
                 script.append(ff7text.decodeKernel(data[i:end], japanese))
                 i = end + 1
 
-            elif c == '\x12':
+            elif c == 0x12:
 
                 # WINDOW <x> <y>
                 if i >= dataSize - 3:
-                    raise IndexError, "Spurious WINDOW command in tutorial data"
+                    raise IndexError("Spurious WINDOW command in tutorial data")
 
                 x, y = struct.unpack_from("<HH", data, i)
                 i += 4
 
-                script.append(u"{WINDOW %d %d}" % (x, y))
+                script.append("{WINDOW %d %d}" % (x, y))
 
             else:
 
@@ -98,13 +98,13 @@ class Script:
                 if c in opcodes:
                     script.append(opcodes[c])
                 else:
-                    raise IndexError, "Illegal opcode %02x in tutorial data" % ord(c)
+                    raise IndexError("Illegal opcode %02x in tutorial data" % c)
 
         return script
 
     # Assemble tutorial data from list of strings.
     def setScript(self, script, japanese = False):
-        data = ""
+        data = bytearray()
 
         for line in script:
             if line.startswith( "{WAIT" ):
@@ -112,44 +112,46 @@ class Script:
                 # WAIT <arg>
                 m = re.match(r"{WAIT (\d+)}", line)
                 if not m:
-                    raise ValueError, "Syntax error in command '%s' in tutorial script" % line
+                    raise ValueError("Syntax error in command '%s' in tutorial script" % line)
 
                 arg = int(m.group(1))
                 if arg > 0xffff:
-                    raise ValueError, "Argument of WAIT command greater than 65535 in tutorial script"
+                    raise ValueError("Argument of WAIT command greater than 65535 in tutorial script")
 
-                data += '\x00'
-                data += struct.pack("<H", arg)
+                data.append(0)
+                data.extend(struct.pack("<H", arg))
 
             elif line.startswith( "{WINDOW" ):
 
                 # WINDOW <x> <y>
                 m = re.match(r"{WINDOW (\d+) (\d+)}", line)
                 if not m:
-                    raise ValueError, "Syntax error in command '%s' in tutorial script" % line
+                    raise ValueError("Syntax error in command '%s' in tutorial script" % line)
 
                 x = int(m.group(1))
                 y = int(m.group(2))
                 if x > 0xffff:
-                    raise ValueError, "First argument of WINDOW command greater than 65535 in tutorial script"
+                    raise ValueError("First argument of WINDOW command greater than 65535 in tutorial script")
                 if y > 0xffff:
-                    raise ValueError, "Second argument of WINDOW command greater than 65535 in tutorial script"
+                    raise ValueError("Second argument of WINDOW command greater than 65535 in tutorial script")
 
-                data += '\x12'
-                data += struct.pack("<HH", x, y)
+                data.append(0x12)
+                data.extend(struct.pack("<HH", x, y))
 
             elif line.startswith( "{" ):
 
                 # Simple command without arguments
                 try:
                     code = commands[line]
-                    data += code
+                    data.append(code)
                 except KeyError:
-                    raise ValueError, "Unknown command '%s' in tutorial script" % line
+                    raise ValueError("Unknown command '%s' in tutorial script" % line)
 
             else:
 
                 # Text line
-                data += '\x10' + ff7text.encode(line, False, japanese)
+                data.append(0x10)
+                data.extend(ff7text.encode(line, False, japanese))
 
-        self.data = data + '\x11'
+        data.append(0x11)  # end of script
+        self.data = data

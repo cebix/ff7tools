@@ -1,9 +1,9 @@
-#!/usr/bin/python2
+#!/usr/bin/env python3
 
 #
 # Fixup - Insert LBN references to files in a FF7 disc image
 #
-# Copyright (C) 2014 Christian Bauer <www.cebix.net>
+# Copyright (C) Christian Bauer <www.cebix.net>
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -4405,7 +4405,7 @@ def applyPatch(data, patch, image, version):
     # Check the contents of the first word
     value = struct.unpack_from("<L", data, offset)[0]
     if value != checkValue:
-        raise EnvironmentError, "Expected %08x at offset %08x but found %08x" % (value, offset, checkValue)
+        raise EnvironmentError("Expected %08x at offset %08x but found %08x" % (value, offset, checkValue))
 
     # Write the file references
     for file in patch.get("files", []):
@@ -4431,7 +4431,7 @@ def applyPatch(data, patch, image, version):
             size = size + 2048 - size % 2048
 
         if file.endswith(".MOV"):
-            size = size / 2048 * 2336  # convert Form 1 size to Form 2 size
+            size = size // 2048 * 2336  # convert Form 1 size to Form 2 size
 
         ref = struct.pack("<LL", lbn, size)
         data = data[:offset] + ref + data[offset+8:]
@@ -4454,7 +4454,7 @@ def applyPatch(data, patch, image, version):
 
             # Reference is immediate operand of "li $a0, xxx" instruction
             if lbn > 0x7fff:
-                raise IndexError, "First sector of '%s' too high for code reference" % file
+                raise IndexError("First sector of '%s' too high for code reference" % file)
 
             ref = struct.pack("<H", lbn)
             data = data[:offset] + ref + data[offset+2:]
@@ -4467,7 +4467,7 @@ def applyPatch(data, patch, image, version):
             data = data[:offset] + refHi + data[offset+2:offset+4] + refLo + data[offset+6:]
 
         else:
-            raise EnvironmentError, "Unsupported code reference"
+            raise EnvironmentError("Unsupported code reference")
 
     return data
 
@@ -4482,13 +4482,13 @@ def applyPatches(path, patchList, imagePath, version):
     firstSector, numBytes = image.findExtent(path)
 
     # Read the file data
-    print "Patching '%s'..." % path
+    print("Patching '%s'..." % path)
     data = image.readExtent(firstSector, numBytes)
 
     # Gzipped? Then decompress it
     gzipped = False
 
-    if data[8:11] == "\x1f\x8b\x08":
+    if data[8:11] == b"\x1f\x8b\x08":
         gzipped = True
 
         # Bytes 0..3 are the size of the uncompressed data
@@ -4518,8 +4518,8 @@ def applyPatches(path, patchList, imagePath, version):
     # Insert the new file into the image
     try:
         subprocess.call(["psxinject", imagePath, path, tmp.name], stderr = sys.stderr)
-    except EnvironmentError, e:
-        raise EnvironmentError, "Cannot run 'psxinject': %s" % e.strerror
+    except EnvironmentError as e:
+        raise EnvironmentError("Cannot run 'psxinject': %s" % e.strerror)
 
     # Close (and delete) the temporary file
     tmp.close()
@@ -4527,12 +4527,12 @@ def applyPatches(path, patchList, imagePath, version):
 
 # Print usage information and exit.
 def usage(exitcode, error = None):
-    print "Usage: %s [OPTION...] <image>[.bin]" % os.path.basename(sys.argv[0])
-    print "  -V, --version                   Display version information and exit"
-    print "  -?, --help                      Show this help message"
+    print("Usage: %s [OPTION...] <image>[.bin]" % os.path.basename(sys.argv[0]))
+    print("  -V, --version                   Display version information and exit")
+    print("  -?, --help                      Show this help message")
 
     if error is not None:
-        print >>sys.stderr, "\nError:", error
+        print("\nError:", error, file=sys.stderr)
 
     sys.exit(exitcode)
 
@@ -4542,7 +4542,7 @@ imagePath = None
 
 for arg in sys.argv[1:]:
     if arg == "--version" or arg == "-V":
-        print "Fixup", __version__
+        print("Fixup", __version__)
         sys.exit(0)
     elif arg == "--help" or arg == "-?":
         usage(0)
@@ -4568,7 +4568,7 @@ try:
     image.close()
 
     if version not in (ff7.Version.EN, ff7.Version.FR, ff7.Version.DE, ff7.Version.ES, ff7.Version.US, ff7.Version.JP):
-        raise EnvironmentError, "Sorry, this release of the game is not supported at the moment"
+        raise EnvironmentError("Sorry, this release of the game is not supported at the moment")
 
     # Process all files which need to be patched
     if discNumber == 1:
@@ -4604,13 +4604,10 @@ try:
         applyPatches(path, patchList, imagePath, version)
 
     # All done
-    print "Image file '%s' modified" % imagePath
+    print("Image file '%s' modified" % imagePath)
 
-except Exception, e:
+except Exception as e:
 
     # Pokemon exception handler
-    if e.message:
-        print >>sys.stderr, e.message
-        sys.exit(1)
-    else:
-        raise
+    print(e, file=sys.stderr)
+    sys.exit(1)

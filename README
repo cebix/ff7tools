@@ -42,10 +42,9 @@ The included tools are:
 The tools are entirely written in Python and have the following
 dependencies:
 
- * Python >= 2.7.6
-   The tools are not compatible with Python 3.
+ * Python >= 3.11
 
- * Pillow >= 5.1.1 (https://pypi.python.org/pypi/Pillow/)
+ * Pillow >= 10.3.0 (https://pypi.python.org/pypi/Pillow/)
    Used by the 'tim2png' and 'subending' tools.
 
  * NumPy >= 1.8.0 (http://www.numpy.org/)

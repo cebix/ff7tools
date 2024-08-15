@@ -1,7 +1,7 @@
 #
 # ff7.world - Final Fantasy VII world event script handling
 #
-# Copyright (C) 2014 Christian Bauer <www.cebix.net>
+# Copyright (C) Christian Bauer <www.cebix.net>
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -10,7 +10,7 @@
 
 import struct
 
-import lzss
+from . import lzss
 
 
 def _enum(**enums):
@@ -75,7 +75,7 @@ class WorldMap:
 
             script.append(op)
 
-            for i in xrange(instructionSize(op) - 1):
+            for i in range(instructionSize(op) - 1):
                 script.append(struct.unpack_from("<H", self.data, offset)[0])
                 offset += 2
 
@@ -92,7 +92,7 @@ class WorldMap:
     def writeToFile(self, fileobj):
 
         # Compress the map data
-        cmpData = lzss.compress(str(self.data))
+        cmpData = lzss.compress(self.data)
 
         # Write to file
         fileobj.seek(0)

@@ -1,7 +1,7 @@
 #
 # ff7.cd - Final Fantasy VII disc image handling
 #
-# Copyright (C) 2014 Christian Bauer <www.cebix.net>
+# Copyright (C) Christian Bauer <www.cebix.net>
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -33,7 +33,7 @@ class Image:
         self.file.seek(0, os.SEEK_END)
         fileSize = self.file.tell()
 
-        if header == "\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00" and fileSize % 2352 == 0:
+        if header == b"\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00" and fileSize % 2352 == 0:
 
             # Sync header present, assume a raw image
             self.blockSize = 2352
@@ -46,13 +46,13 @@ class Image:
             self.blockOffset = 0
 
         else:
-            raise EnvironmentError, "'%s' does not appear to be a disc image file (invalid file size)" % imageFileName
+            raise EnvironmentError("'%s' does not appear to be a disc image file (invalid file size)" % imageFileName)
 
         # Read and check the PVD
         pvd = self.readExtent(16, 2048)
 
-        if pvd[:7] != "\x01CD001\x01":
-            raise EnvironmentError, "'%s' is not a disc image file (volume descriptor not found)" % imageFileName
+        if pvd[:7] != b"\x01CD001\x01":
+            raise EnvironmentError("'%s' is not a disc image file (volume descriptor not found)" % imageFileName)
 
         # Find the root directory
         self.rootDirSector, self.rootDirSize = struct.unpack_from("<L4xL", pvd, 0x9e)
@@ -64,7 +64,7 @@ class Image:
     # Read contiguous data from the image given the start sector and number
     # of bytes to read. Returns the data as a byte string.
     def readExtent(self, firstSector, numBytes):
-        data = ""
+        data = bytearray()
         sector = firstSector
 
         while numBytes > 0:
@@ -72,18 +72,18 @@ class Image:
             sectorData = self.file.read(2048)
 
             if len(sectorData) < 2048:
-                raise ValueError, "Error reading sector %d of disc image" % sector
+                raise ValueError("Error reading sector %d of disc image" % sector)
 
             sector += 1
 
             if numBytes > 2048:
-                data += sectorData
+                data.extend(sectorData)
                 numBytes -= 2048
             else:
-                data += sectorData[:numBytes]
+                data.extend(sectorData[:numBytes])
                 numBytes = 0
 
-        return data
+        return bytes(data)
 
     # Find a file or directory in the image by path name, returning a
     # (firstSector, numBytes) tuple. Raises a KeyError if the file or
@@ -111,19 +111,19 @@ class Image:
             while (firstSector is None) and (offset < dirSize):
 
                 # Get record length and type
-                recLen = ord(dir[offset])
+                recLen = dir[offset]
                 if recLen == 0:
                     offset += 1  # empty padding at end of sector
                     continue
 
-                recType = ord(dir[offset + 0x19])
+                recType = dir[offset + 0x19]
 
                 # Compare entry name
-                nameLen = ord(dir[offset + 0x20])
+                nameLen = dir[offset + 0x20]
                 name = dir[offset + 0x21:offset + 0x21 + nameLen]
-                name = name.split(';')[0]  # strip file version numbers
+                name = name.split(b';')[0]  # strip file version numbers
 
-                if name == path[0]:
+                if name.decode() == path[0]:
 
                     # Found it
                     firstSector, numBytes = struct.unpack_from("<L4xL", dir, offset + 2)
@@ -131,13 +131,13 @@ class Image:
                     if (len(path) > 1) and (recType & 0x02) == 0:
 
                         # Expected a directory but found a file
-                        raise KeyError, "'%s' not found in disc image" % pathName
+                        raise KeyError("'%s' not found in disc image" % pathName)
 
                 # Move to next record
                 offset += recLen
 
             if firstSector is None:
-                raise KeyError, "'%s' not found in disc image" % pathName
+                raise KeyError("'%s' not found in disc image" % pathName)
 
             if len(path) == 1:
 

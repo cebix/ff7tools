@@ -1,13 +1,14 @@
 #
 # ff7.binlz - Final Fantasy VII LZSS archive handling
 #
-# Copyright (C) 2014 Christian Bauer <www.cebix.net>
+# Copyright (C) Christian Bauer <www.cebix.net>
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
 # copyright notice and this permission notice appear in all copies.
 #
 
+import os
 import struct
 
 import ff7
@@ -16,7 +17,7 @@ import ff7
 # LZSS archive file, stores LZSS compressed data
 class ArchiveFile:
 
-    def __init__(self, index, cmpData = ""):
+    def __init__(self, index, cmpData = b""):
         self.index = index
         self.cmpData = cmpData
 
@@ -31,7 +32,7 @@ class ArchiveFile:
         self.cmpData = struct.pack("<L", len(cmpData)) + cmpData
 
         while len(self.cmpData) % 4:
-            self.cmpData += '\0'  # align to 32-bit
+            self.cmpData += bytes([0])  # align to 32-bit
 
 
 # LZSS archive (sequence of possibly LZSS compressed files with an offset
@@ -46,16 +47,19 @@ class Archive:
         firstOffset = struct.unpack("<L", fileobj.read(4))[0]
         assert firstOffset % 4 == 0
 
-        numFiles = firstOffset / 4
+        numFiles = firstOffset // 4
 
         offsets = [firstOffset]
-        for fileNum in xrange(numFiles - 1):
+        for fileNum in range(numFiles - 1):
             offsets.append(struct.unpack("<L", fileobj.read(4))[0])
 
+        pos = fileobj.tell()
+        fileobj.seek(0, os.SEEK_END)
         offsets.append(fileobj.tell())  # dummy offset to determine size of last file
+        fileobj.seek(pos)
 
         # Extract all files
-        for fileNum in xrange(numFiles):
+        for fileNum in range(numFiles):
             cmpDataSize = offsets[fileNum + 1] - offsets[fileNum]
             self.fileList.append(ArchiveFile(fileNum, fileobj.read(cmpDataSize)))
 

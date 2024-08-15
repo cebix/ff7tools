@@ -1,9 +1,9 @@
-#!/usr/bin/python2
+#!/usr/bin/env python3
 
 #
 # UnScene - Extract the Final Fantasy VII SCENE.BIN file
 #
-# Copyright (C) 2014 Christian Bauer <www.cebix.net>
+# Copyright (C) Christian Bauer <www.cebix.net>
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -20,12 +20,12 @@ import ff7
 
 # Print usage information and exit.
 def usage(exitcode, error = None):
-    print "Usage: %s [OPTION...] <file>" % os.path.basename(sys.argv[0])
-    print "  -V, --version                   Display version information and exit"
-    print "  -?, --help                      Show this help message"
+    print("Usage: %s [OPTION...] <file>" % os.path.basename(sys.argv[0]))
+    print("  -V, --version                   Display version information and exit")
+    print("  -?, --help                      Show this help message")
 
     if error is not None:
-        print >>sys.stderr, "\nError:", error
+        print("\nError:", error, file=sys.stderr)
 
     sys.exit(exitcode)
 
@@ -35,7 +35,7 @@ inputFileName = None
 
 for arg in sys.argv[1:]:
     if arg == "--version" or arg == "-V":
-        print "UnScene", __version__
+        print("UnScene", __version__)
         sys.exit(0)
     elif arg == "--help" or arg == "-?":
         usage(0)
@@ -53,24 +53,24 @@ if inputFileName is None:
 # Read the scene archive
 try:
     inputFile = open(inputFileName, "rb")
-except IOError, e:
-    print >>sys.stderr, "Error opening file '%s': %s" % (inputFileName, e.strerror)
+except IOError as e:
+    print("Error opening file '%s': %s" % (inputFileName, e.strerror), file=sys.stderr)
     sys.exit(1)
 
 # Extract the scenes
 archive = ff7.scene.Archive(inputFile)
 
-for i in xrange(archive.numScenes()):
+for i in range(archive.numScenes()):
     scene = archive.getScene(i)
 
     outputFileName = "SCENE_%03d.data" % i
     try:
         outputFile = open(outputFileName, "wb")
-    except IOError, e:
-        print >>sys.stderr, "Cannot create file '%s': %s" % (outputFileName, e.strerror)
+    except IOError as e:
+        print("Cannot create file '%s': %s" % (outputFileName, e.strerror), file=sys.stderr)
         sys.exit(1)
 
     outputFile.write(scene.data)
     outputFile.close()
 
-    print "Written '%s'" % outputFileName
+    print("Written '%s'" % outputFileName)

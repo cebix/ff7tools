@@ -1,9 +1,9 @@
-#!/usr/bin/python2
+#!/usr/bin/env python3
 
 #
 # MapInfo - Extract event texts and scripts of Final Fantasy VII maps
 #
-# Copyright (C) 2014 Christian Bauer <www.cebix.net>
+# Copyright (C) Christian Bauer <www.cebix.net>
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -15,23 +15,21 @@ __version__ = "1.3"
 import sys
 import os
 import shutil
-import codecs
-import locale
 
-sys.stdout = codecs.getwriter(locale.getpreferredencoding())(sys.stdout, "backslashreplace")
-sys.stderr = codecs.getwriter(locale.getpreferredencoding())(sys.stderr, "backslashreplace") 
+sys.stdout.reconfigure(encoding = "locale", errors = "backslashreplace")
+sys.stderr.reconfigure(encoding = "locale", errors = "backslashreplace")
 
 import ff7
 
 
 # Print usage information and exit.
 def usage(exitcode, error = None):
-    print "Usage: %s [OPTION...] <game_dir_or_image> <output_dir>" % os.path.basename(sys.argv[0])
-    print "  -V, --version                   Display version information and exit"
-    print "  -?, --help                      Show this help message"
+    print("Usage: %s [OPTION...] <game_dir_or_image> <output_dir>" % os.path.basename(sys.argv[0]))
+    print("  -V, --version                   Display version information and exit")
+    print("  -?, --help                      Show this help message")
 
     if error is not None:
-        print >>sys.stderr, "\nError:", error
+        print("\nError:", error, file=sys.stderr)
 
     sys.exit(exitcode)
 
@@ -42,7 +40,7 @@ outputDir = None
 
 for arg in sys.argv[1:]:
     if arg == "--version" or arg == "-V":
-        print "MapInfo", __version__
+        print("MapInfo", __version__)
         sys.exit(0)
     elif arg == "--help" or arg == "-?":
         usage(0)
@@ -66,20 +64,20 @@ try:
     if os.path.isfile(discPath):
         discPath = ff7.cd.Image(discPath)
     elif not os.path.isdir(discPath):
-        raise EnvironmentError, "'%s' is not a directory or disc image file" % discPath
+        raise EnvironmentError("'%s' is not a directory or disc image file" % discPath)
 
     # Check that this is a FF7 disc
     version, discNumber, execFileName = ff7.checkDisc(discPath)
 
     # Create the output directory
     if os.path.isfile(outputDir):
-        print >>sys.stderr, "Cannot create output directory '%s': Path refers to a file" % outputDir
+        print("Cannot create output directory '%s': Path refers to a file" % outputDir, file=sys.stderr)
         sys.exit(1)
 
     if os.path.isdir(outputDir):
         answer = None
         while answer not in ["y", "n"]:
-            answer = raw_input("Output directory '%s' exists. Delete and overwrite it (y/n)? " % outputDir)
+            answer = input("Output directory '%s' exists. Delete and overwrite it (y/n)? " % outputDir)
 
         if answer == 'y':
             shutil.rmtree(outputDir)
@@ -88,13 +86,13 @@ try:
 
     try:
         os.makedirs(outputDir)
-    except OSError, e:
-        print >>sys.stderr, "Cannot create output directory '%s': %s" % (outputDir, e.strerror)
+    except OSError as e:
+        print("Cannot create output directory '%s': %s" % (outputDir, e.strerror), file=sys.stderr)
         sys.exit(1)
 
     # Handle all map files
     for map in ff7.data.fieldMaps(version):
-        print map
+        print(map)
 
         # Get the event data
         mapData = ff7.field.MapData(ff7.retrieveFile(discPath, "FIELD", map + ".DAT"))
@@ -103,33 +101,33 @@ try:
         # Create the output file
         filePath = os.path.join(outputDir, map.lower() + ".txt")
         try:
-            f = open(filePath, "w")
-        except IOError, e:
-            print >>sys.stderr, "Cannot create file '%s': %s" % (filePath, e.strerror)
+            f = open(filePath, "w", encoding = "utf-8")
+        except IOError as e:
+            print("Cannot create file '%s': %s" % (filePath, e.strerror), file=sys.stderr)
             sys.exit(1)
 
         # Print a header
-        print >>f, "##"
-        print >>f, "## %s by %s" % (event.mapName, event.creator)
-        print >>f, "##"
-        print >>f
+        print("##", file=f)
+        print("## %s by %s" % (event.mapName, event.creator), file=f)
+        print("##", file=f)
+        print(file=f)
 
         # Dump the strings
-        print >>f, "#"
-        print >>f, "# Message strings"
-        print >>f, "#"
-        print >>f
+        print("#", file=f)
+        print("# Message strings", file=f)
+        print("#", file=f)
+        print(file=f)
 
         id = 0
         for string in event.getStrings(ff7.isJapanese(version)):
-            print >>f, (u"\u25b6 %d" % id).encode("utf-8")
-            print >>f, string.encode("utf-8")
+            print("\u25b6 %d" % id, file=f)
+            print(string, file=f)
             id += 1
 
         # Create the script entry label table
         entries = []
         for name, scripts in zip(event.actorNames, event.actorScripts):
-            for i in xrange(len(scripts)):
+            for i in range(len(scripts)):
                 addr = scripts[i]
                 if i == 0:
                     entries.append(("%s[init]" % name, addr))
@@ -143,20 +141,17 @@ try:
                     entries.append(("%s[%d]" % (name, i), addr))
 
         # Dump the scripts
-        print >>f
-        print >>f, "#"
-        print >>f, "# Event script"
-        print >>f, "#"
+        print(file=f)
+        print("#", file=f)
+        print("# Event script", file=f)
+        print("#", file=f)
 
-        print >>f, ff7.field.disassemble(event.scriptCode, event.scriptBaseAddress, entries)
+        print(ff7.field.disassemble(event.scriptCode, event.scriptBaseAddress, entries), file=f)
 
         f.close()
 
-except Exception, e:
+except Exception as e:
 
     # Pokemon exception handler
-    if e.message:
-        print >>sys.stderr, e.message
-        sys.exit(1)
-    else:
-        raise
+    print(e, file=sys.stderr)
+    sys.exit(1)

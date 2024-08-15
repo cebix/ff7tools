@@ -1,7 +1,7 @@
 #
 # ff7.field - Final Fantasy VII field map and script handling
 #
-# Copyright (C) 2014 Christian Bauer <www.cebix.net>
+# Copyright (C) Christian Bauer <www.cebix.net>
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -10,8 +10,8 @@
 
 import struct
 
-import lzss
-import ff7text
+from . import lzss
+from . import ff7text
 
 
 def _enum(**enums):
@@ -51,7 +51,7 @@ class MapData:
         # ascending order, so the size of each section equals the difference
         # between adjacent pointers)
         self.sections = []
-        for i in xrange(len(pointers) - 1):
+        for i in range(len(pointers) - 1):
             start = pointers[i] - self.basePointer + tableSize
             end = pointers[i + 1] - self.basePointer + tableSize
             assert end >= start
@@ -68,23 +68,23 @@ class MapData:
 
         # Align section size to multiple of four
         if len(data) % 4:
-            data += '\0' * (4 - len(data) % 4)
+            data.extend(b'\0' * (4 - len(data) % 4))
 
         self.sections[Section.EVENT] = data
 
     # Write the map to a file object, truncating the file.
     def writeToFile(self, fileobj):
-        mapData = ""
+        mapData = bytearray()
 
         # Create the pointer table
         pointer = self.basePointer
         for data in self.sections:
-            mapData += struct.pack("<L", pointer)
+            mapData.extend(struct.pack("<L", pointer))
             pointer += len(data)
 
         # Append the sections
         for data in self.sections:
-            mapData += data
+            mapData.extend(data)
 
         # Compress the map data
         cmpData = lzss.compress(mapData)
@@ -107,21 +107,21 @@ class EventSection:
         self.version, numActors, self.numModels, stringTableOffset, numExtra, self.scale, self.creator, self.mapName = struct.unpack_from("<HBBHHH6x8s8s", data)
         offset = headerSize
 
-        self.creator = self.creator.rstrip('\0')
-        self.mapName = self.mapName.rstrip('\0')
+        self.creator = self.creator.rstrip(b'\0').decode(encoding = "sjis", errors = "backslashreplace")
+        self.mapName = self.mapName.rstrip(b'\0').decode(encoding = "sjis", errors = "backslashreplace")
 
         # Read the actor names
         self.actorNames = []
-        for i in xrange(numActors):
+        for i in range(numActors):
             name = struct.unpack_from("8s", data, offset)[0]
             offset += 8
 
-            name = name.rstrip('\0')
+            name = name.rstrip(b'\0').decode(encoding = "sjis", errors = "backslashreplace")
             self.actorNames.append(name)
 
         # Read the extra block (music/tutorial) offset table
         extraOffsets = []
-        for i in xrange(numExtra):
+        for i in range(numExtra):
             extraOffset = struct.unpack_from("<L", data, offset)[0]
             offset += 4
 
@@ -132,7 +132,7 @@ class EventSection:
         # Read the actor script entry tables (32 entries per actor)
         self.actorScripts = []
         self.scriptEntryAddresses = set()
-        for i in xrange(numActors):
+        for i in range(numActors):
             scripts = list(struct.unpack_from("<32H", data, offset))
             offset += 64
 
@@ -153,7 +153,7 @@ class EventSection:
         # flow analyses we add a 33rd element to each script entry table
         # which points to the instruction after the first RET of the
         # default script.
-        for i in xrange(numActors):
+        for i in range(numActors):
             defaultScript = self.actorScripts[i][0]
 
             codeOffset = defaultScript - self.scriptBaseAddress
@@ -169,8 +169,8 @@ class EventSection:
 
         # Also look for double-RET instructions in regular scripts and
         # add pseudo entry points after them
-        for i in xrange(numActors):
-            for j in xrange(1, 32):
+        for i in range(numActors):
+            for j in range(1, 32):
                 codeOffset = self.actorScripts[i][j] - self.scriptBaseAddress
 
                 while codeOffset < (len(self.scriptCode) - 2):
@@ -192,10 +192,10 @@ class EventSection:
         offset = stringTableOffset
         offset += 2  # the first two bytes are supposed to indicate the number of strings, but this is totally unreliable
         firstOffset = struct.unpack_from("<H", data, offset)[0]
-        numStrings = firstOffset / 2 - 1  # determine the number of strings by the first offset instead
+        numStrings = firstOffset // 2 - 1  # determine the number of strings by the first offset instead
 
         stringOffsets = []
-        for i in xrange(numStrings):
+        for i in range(numStrings):
             stringOffsets.append(struct.unpack_from("<H", data, offset)[0])
             offset += 2
 
@@ -206,14 +206,14 @@ class EventSection:
         self.stringData = []
         for o in stringOffsets:
             start = stringTableOffset + o
-            end = data.find('\xff', start)
+            end = data.find(b'\xff', start)
             self.stringData.append(data[start:end + 1])
 
         # Read the extra blocks (assumptions: offsets are in ascending order
         # and there is no other data between or after the extra blocks, so
         # the size of each block is the difference between adjacent offsets)
         self.extras = []
-        for i in xrange(numExtra):
+        for i in range(numExtra):
             start = extraOffsets[i]
             end = extraOffsets[i + 1]
             assert end >= start
@@ -252,8 +252,8 @@ class EventSection:
         stringTableOffset = 32 + actorNamesSize + extraOffsetsSize + scriptTablesSize + scriptCodeSize
 
         # Create the string table
-        stringOffsets = ""
-        stringTable = ""
+        stringOffsets = b""
+        stringTable = b""
 
         offset = 2 + numStrings * 2
         for string in self.stringData:
@@ -267,37 +267,38 @@ class EventSection:
         # Align string table size so the extra blocks are 32-bit aligned
         align = stringTableOffset + len(stringTable)
         if align % 4:
-            stringTable += '\0' * (4 - align % 4)
+            stringTable += bytes([0]) * (4 - align % 4)
 
         stringTableSize = len(stringTable)
 
         # Write the header
-        data = struct.pack("<HBBHHH6x8s8s", version, numActors, self.numModels, stringTableOffset, numExtras, self.scale, self.creator, self.mapName)
+        data = bytearray()
+        data.extend(struct.pack("<HBBHHH6x8s8s", version, numActors, self.numModels, stringTableOffset, numExtras, self.scale, bytes(self.creator, "sjis"), bytes(self.mapName, "sjis")))
 
         # Write the actor names
         for name in self.actorNames:
-            data += struct.pack("8s", name)
+            data.extend(struct.pack("8s", bytes(name, "sjis")))
 
         # Write the extra block offset table
         offset = stringTableOffset + stringTableSize
         for extra in self.extras:
-            data += struct.pack("<L", offset)
+            data.extend(struct.pack("<L", offset))
             offset += len(extra)
 
         # Write the actor script entry tables
         for scripts in self.actorScripts:
-            for i in xrange(32):
-                data += struct.pack("<H", scripts[i])
+            for i in range(32):
+                data.extend(struct.pack("<H", scripts[i]))
 
         # Write the script code
-        data += str(self.scriptCode)
+        data.extend(self.scriptCode)
 
         # Write the string table
-        data += stringTable
+        data.extend(stringTable)
 
         # Write the extra blocks
         for extra in self.extras:
-            data += extra
+            data.extend(extra)
 
         return data
 
@@ -587,13 +588,13 @@ def buildCFG(code, baseAddress, entryAddresses):
             block.succ = set([targetOffset(code, lastInstruction) + baseAddress])
         elif isBranch(code, lastInstruction):  # two successors: the branch target and the next instruction
             if offset >= len(code):
-                raise IndexError, "Control flow reaches end of script code"
+                raise IndexError("Control flow reaches end of script code")
             block.succ = set([targetOffset(code, lastInstruction) + baseAddress, addr])
         elif isExit(code, lastInstruction):    # no successors
             block.succ = set()
         else:                                  # one successor: the next instruction
             if offset >= len(code):
-                raise IndexError, "Control flow reaches end of script code"
+                raise IndexError("Control flow reaches end of script code")
             block.succ = set([addr])
 
         # Add the block to the graph
@@ -629,7 +630,7 @@ def findPaths(graph, entryAddress, path = []):
 # in the specified list. The passed-in graph is modified by this function.
 # SPCAL 2-byte opcodes which should be kept can be specified as 0x0fxx.
 def filterInstructions(graph, code, keep):
-    for block in graph.values():
+    for block in list(graph.values()):
         newInstructions = []
 
         for offset in block.instructions:
@@ -672,7 +673,7 @@ def reduce(graph, entryAddresses):
 
         # Eliminate the condition from simple 'if c then b' constructs by
         # assuming that the inner block is always executed
-        for blockAddr, block in graph.iteritems():
+        for blockAddr, block in graph.items():
             if len(block.succ) == 2:
                 sortedSuccs = sorted(list(block.succ))
                 innerAddr = sortedSuccs[0]
@@ -692,7 +693,7 @@ def reduce(graph, entryAddresses):
 
         # Skip blocks with no (filtered) instructions as long as it reduces
         # the number of paths
-        for blockAddr, block in graph.iteritems():
+        for blockAddr, block in graph.items():
             newSucc = set()
 
             for addr in block.succ:
@@ -717,10 +718,10 @@ def reduce(graph, entryAddresses):
 
         # Remove orphaned blocks
         referencedBlocks = set(entryAddresses)
-        for block in graph.values():
+        for block in list(graph.values()):
             referencedBlocks |= block.succ
 
-        for addr in graph.keys()[:]:
+        for addr in list(graph.keys())[:]:
             if addr not in referencedBlocks:
 #                print "deleting %04x" % addr
                 del graph[addr]
