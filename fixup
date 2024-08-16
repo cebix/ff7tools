@@ -415,10 +415,22 @@ patchChocoboES = patchChocoboFR
 patchChocoboUS = [
     ("MINI/CHOCOBO.BIN", [
         {
+            "offset": 0x00002798,
+            "check": 0x2404032c,
+            "coderef": 'MINI/CHOCOBO.DAT',
+            "startblock": 0x0099,
+        },
+        {
             "offset": 0x0000279c,
             "check": 0x240403c1,
             "coderef": 'MINI/CHOCOBO.DAT',
             "startblock": 0x012e,
+        },
+        {
+            "offset": 0x000027d4,
+            "check": 0x240403f1,
+            "coderef": 'MINI/CHOCOBO.DAT',
+            "startblock": 0x015e,
         },
         {
             "offset": 0x000027e4,
@@ -427,10 +439,34 @@ patchChocoboUS = [
             "startblock": 0x013b,
         },
         {
+            "offset": 0x00002820,
+            "check": 0x24040459,
+            "coderef": 'MINI/CHOCOBO.DAT',
+            "startblock": 0x01c6,
+        },
+        {
+            "offset": 0x0000283c,
+            "check": 0x2404049c,
+            "coderef": 'MINI/CHOCOBO.DAT',
+            "startblock": 0x0209,
+        },
+        {
+            "offset": 0x0000284c,
+            "check": 0x24040433,
+            "coderef": 'MINI/CHOCOBO.DAT',
+            "startblock": 0x01a0,
+        },
+        {
             "offset": 0x00002850,
             "check": 0x24040417,
             "coderef": 'MINI/CHOCOBO.DAT',
             "startblock": 0x0184,
+        },
+        {
+            "offset": 0x00002888,
+            "check": 0x2404033e,
+            "coderef": 'MINI/CHOCOBO.DAT',
+            "startblock": 0x00ab,
         },
         {
             "offset": 0x00002898,
