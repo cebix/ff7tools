@@ -1,3 +1,7 @@
+V1.5 (2024-08-18)
+ - fixed a problem in the 'fixup' tool that could cause the Chocobo racing
+   minigame to crash in the US version of the game
+
 V1.4 (2024-08-15)
  - ported to Python 3
 
