@@ -261,7 +261,7 @@ class EventSection:
             stringTable += string
             offset += len(string)
 
-        assert numStrings <= 256  # string IDs in MES/ASK/MPNAM commands are one byte only
+        assert numStrings <= 256  # string IDs in MESSAGE/ASK/MPNAM commands are one byte only
         stringTable = struct.pack("<H", numStrings & 0xff) + stringOffsets + stringTable
 
         # Align string table size so the extra blocks are 32-bit aligned
@@ -305,129 +305,129 @@ class EventSection:
 
 # Mnemonic and operand length for each script opcode
 opcodes = [
-    # 0x00..0x07
-    ("ret", 0),    ("req", 2),    ("reqsw", 2),  ("reqew", 2),  ("preq", 2),   ("prqsw", 2),  ("prqew", 2),  ("retto", 1),
+    # 0X00..0X07
+    ("RET", 0),    ("REQ", 2),    ("REQSW", 2),  ("REQEW", 2),  ("PREQ", 2),   ("PRQSW", 2),  ("PRQEW", 2),  ("RETTO", 1),
 
-    # 0x08..0x0f
-    ("join", 1),   ("split", 14), ("sptye", 5),  ("gptye", 5),  ("", -1),      ("", -1),      ("dskcg", 1),  ("spcal", 0),
+    # 0X08..0X0F
+    ("JOIN", 1),   ("SPLIT", 14), ("SPTYE", 5),  ("GPTYE", 5),  ("", -1),      ("", -1),      ("DSKCG", 1),  ("SPECIAL", 0),
 
-    # 0x10..0x17
-    ("skip", 1),   ("lskip", 2),  ("back", 1),   ("lback", 2),  ("if", 5),     ("lif", 6),    ("if2", 7),    ("lif2", 8),
+    # 0X10..0X17
+    ("JMPF", 1),   ("JMPFL", 2),  ("JMPB", 1),   ("JMPBL", 2),  ("IFUB", 5),     ("IFUBL", 6),    ("IFSW", 7),    ("IFSWL", 8),
 
-    # 0x18..0x1f
-    ("if2", 7),    ("lif2", 8),   ("", -1),      ("", -1),      ("", -1),      ("", -1),      ("", -1),      ("", -1),
+    # 0X18..0X1F
+    ("IFUW", 7),    ("IFUWL", 8),   ("", -1),      ("", -1),      ("", -1),      ("", -1),      ("", -1),      ("", -1),
 
-    # 0x20..0x27
-    ("mgame", 10), ("tutor", 1),  ("btmd2", 4),  ("btrlt", 2),  ("wait", 2),   ("nfade", 8),  ("blink", 1),  ("bgmovie", 1),
+    # 0X20..0X27
+    ("MINIGAME", 10), ("TUTOR", 1),  ("BTMD2", 4),  ("BTRLD", 2),  ("WAIT", 2),   ("NFADE", 8),  ("BLINK", 1),  ("BGMOVIE", 1),
 
-    # 0x28..0x2f
-    ("kawai", 0),  ("kawiw", 0),  ("pmova", 1),  ("slip", 1),   ("bgdph", 4),  ("bgscr", 6),  ("wcls!", 1),  ("wsizw", 9),
+    # 0X28..0X2F
+    ("KAWAI", 0),  ("KAWIW", 0),  ("PMOVA", 1),  ("SLIP", 1),   ("BGPDH", 4),  ("BGSCR", 6),  ("WCLS", 1),  ("WSIZW", 9),
 
-    # 0x30..0x37
-    ("key!", 3),   ("keyon", 3),  ("keyof", 3),  ("uc", 1),     ("pdira", 1),  ("ptura", 3),  ("wspcl", 4),  ("wnumb", 7),
+    # 0X30..0X37
+    ("IFKEY", 3),   ("IFKEYON", 3),  ("KEYOF", 3),  ("UC", 1),     ("PDIRA", 1),  ("PTURA", 3),  ("WSPCL", 4),  ("WNUMB", 7),
 
-    # 0x38..0x3f
-    ("sttim", 5),  ("gold+", 5),  ("gold-", 5),  ("chgld", 3),  ("hmpmx", 0),  ("hmpmx", 0),  ("mhmmx", 0),  ("hmpmx", 0),
+    # 0X38..0X3F
+    ("STTIM", 5),  ("GOLDu", 5),  ("GOLDd", 5),  ("CHGLD", 3),  ("HMPMX1", 0),  ("HMPMX2", 0),  ("MHMMX", 0),  ("HMPMX3", 0),
 
-    # 0x40..0x47
-    ("mes", 2),    ("mpara", 4),  ("mpra2", 5),  ("mpnam", 1),  ("", -1),      ("mp+", 4),    ("", -1),      ("mp-", 4),
+    # 0X40..0X47
+    ("MESSAGE", 2),    ("MPARA", 4),  ("MPRA2", 5),  ("MPNAM", 1),  ("", -1),      ("MPu", 4),    ("", -1),      ("MPd", 4),
 
-    # 0x48..0x4f
-    ("ask", 6),    ("menu", 3),   ("menu", 1),   ("btltb", 1),  ("", -1),      ("hp+", 4),    ("", -1),      ("hp-", 4),
+    # 0X48..0X4F
+    ("ASK", 6),    ("MENU", 3),   ("MENU2", 1),   ("BTLTB", 1),  ("", -1),      ("HPu", 4),    ("", -1),      ("HPd", 4),
 
-    # 0x50..0x57
-    ("wsize", 9),  ("wmove", 5),  ("wmode", 3),  ("wrest", 1),  ("wclse", 1),  ("wrow", 2),   ("gwcol", 6),  ("swcol", 6),
+    # 0X50..0X57
+    ("WSIZE", 9),  ("WMOVE", 5),  ("WMODE", 3),  ("WREST", 1),  ("WCLSE", 1),  ("WROW", 2),   ("GWCOL", 6),  ("SWCOL", 6),
 
-    # 0x58..0x5f
-    ("stitm", 4),  ("dlitm", 4),  ("ckitm", 4),  ("smtra", 6),  ("dmtra", 7),  ("cmtra", 9),  ("shake", 7),  ("wait", 0),
+    # 0X58..0X5F
+    ("STITM", 4),  ("DLITM", 4),  ("CKITM", 4),  ("SMTRA", 6),  ("DMTRA", 7),  ("CMTRA", 9),  ("SHAKE", 7),  ("WAIT", 0),
 
-    # 0x60..0x67
-    ("mjump", 9),  ("scrlo", 1),  ("scrlc", 4),  ("scrla", 5),  ("scr2d", 5),  ("scrcc", 0),  ("scr2dc", 8), ("scrlw", 0),
+    # 0X60..0X67
+    ("MAPJUMP", 9),  ("SCRLO", 1),  ("SCRLC", 4),  ("SCRLA", 5),  ("SCR2D", 5),  ("SCRCC", 0),  ("SCR2DC", 8), ("SCRLW", 0),
 
-    # 0x68..0x6f
-    ("scr2dl", 8), ("mpdsp", 1),  ("vwoft", 6),  ("fade", 8),   ("fadew", 0),  ("idlck", 3),  ("lstmp", 2),  ("scrlp", 5),
+    # 0X68..0X6F
+    ("SCR2DL", 8), ("MPDSP", 1),  ("VWOFT", 6),  ("FADE", 8),   ("FADEW", 0),  ("IDLCK", 3),  ("LSTMP", 2),  ("SCRLP", 5),
 
-    # 0x70..0x77
-    ("batle", 3),  ("btlon", 1),  ("btlmd", 2),  ("pgtdr", 3),  ("getpc", 3),  ("pxyzi", 7),  ("plus!", 3),  ("pls2!", 4),
+    # 0X70..0X77
+    ("BATTLE", 3),  ("BTLON", 1),  ("BTLMD", 2),  ("PGTDR", 3),  ("GETPC", 3),  ("PXYZI", 7),  ("PLUS!", 3),  ("PLUS2!", 4),
 
-    # 0x78..0x7f
-    ("mins!", 3),  ("mns2!", 4),  ("inc!", 2),   ("inc2!", 2),  ("dec!", 2),   ("dec2!", 2),  ("tlkon", 1),  ("rdmsd", 2),
+    # 0X78..0X7F
+    ("MINUS!", 3),  ("MINUS2!", 4),  ("INC!", 2),   ("INC2!", 2),  ("DEC!", 2),   ("DEC2!", 2),  ("TLKON", 1),  ("RDMSD", 2),
 
-    # 0x80..0x87
-    ("set", 3),    ("set2", 4),   ("biton", 3),  ("bitof", 3),  ("bitxr", 3),  ("plus", 3),   ("plus2", 4),  ("minus", 3),
+    # 0X80..0X87
+    ("SETBYTE", 3),    ("SETWORD", 4),   ("BITON", 3),  ("BITOFF", 3),  ("BITXOR", 3),  ("PLUS", 3),   ("PLUS2", 4),  ("MINUS", 3),
 
-    # 0x88..0x8f
-    ("mins2", 4),  ("mul", 3),    ("mul2", 4),   ("div", 3),    ("div2", 4),   ("remai", 3),  ("rema2", 4),  ("and", 3),
+    # 0X88..0X8F
+    ("MINUS2", 4),  ("MUL", 3),    ("MUL2", 4),   ("DIV", 3),    ("DIV2", 4),   ("MOD", 3),  ("MOD2", 4),  ("AND", 3),
 
-    # 0x90..0x97
-    ("and2", 4),   ("or", 3),     ("or2", 4),    ("xor", 3),    ("xor2", 4),   ("inc", 2),    ("inc2", 2),   ("dec", 2),
+    # 0X90..0X97
+    ("AND2", 4),   ("OR", 3),     ("OR2", 4),    ("XOR", 3),    ("XOR2", 4),   ("INC", 2),    ("INC2", 2),   ("DEC", 2),
 
-    # 0x98..0x9f
-    ("dec2", 2),   ("randm", 2),  ("lbyte", 3),  ("hbyte", 4),  ("2byte", 5),  ("setx", 6),   ("getx", 6),   ("srchx", 10),
+    # 0X98..0X9F
+    ("DEC2", 2),   ("RANDOM", 2),  ("LBYTE", 3),  ("HBYTE", 4),  ("2BYTE", 5),  ("SETX", 6),   ("GETX", 6),   ("SEARCHX", 10),
 
-    # 0xa0..0xa7
-    ("pc", 1),     ("char", 1),   ("dfanm", 2),  ("anime", 2),  ("visi", 1),   ("xyzi", 10),  ("xyi", 8),    ("xyz", 8),
+    # 0XA0..0XA7
+    ("PC", 1),     ("CHAR", 1),   ("DFANM", 2),  ("ANIME1", 2),  ("VISI", 1),   ("XYZI", 10),  ("XYI", 8),    ("XYZ", 8),
 
-    # 0xa8..0xaf
-    ("move", 5),   ("cmove", 5),  ("mova", 1),   ("tura", 3),   ("animw", 0),  ("fmove", 5),  ("anime", 2),  ("anim!", 2),
+    # 0XA8..0XAF
+    ("MOVE", 5),   ("CMOVE", 5),  ("MOVA", 1),   ("TURA", 3),   ("ANIMW", 0),  ("FMOVE", 5),  ("ANIME2", 2),  ("ANIM!1", 2),
 
-    # 0xb0..0xb7
-    ("canim", 4),  ("canm!", 4),  ("msped", 3),  ("dir", 2),    ("turnr", 5),  ("turn", 5),   ("dira", 1),   ("gtdir", 3),
+    # 0XB0..0XB7
+    ("CANIM1", 4),  ("CANM!1", 4),  ("MSPED", 3),  ("DIR", 2),    ("TURNGEN", 5),  ("TURN", 5),   ("DIRA", 1),   ("GETDIR", 3),
 
-    # 0xb8..0xbf
-    ("getaxy", 4), ("getai", 3),  ("anim!", 2),  ("canim", 4),  ("canm!", 4),  ("asped", 3),  ("", -1),      ("cc", 1),
+    # 0XB8..0XBF
+    ("GETAXY", 4), ("GETAI", 3),  ("ANIM!2", 2),  ("CANIM2", 4),  ("CANM!2", 4),  ("ASPED", 3),  ("", -1),      ("CC", 1),
 
-    # 0xc0..0xc7
-    ("jump", 10),  ("axyzi", 7),  ("lader", 14), ("ofstd", 11), ("ofstw", 0),  ("talkR", 2),  ("slidR", 2),  ("solid", 1),
+    # 0XC0..0XC7
+    ("JUMP", 10),  ("AXYZI", 7),  ("LADER", 14), ("OFST", 11), ("OFSTW", 0),  ("TALKR", 2),  ("SLIDR", 2),  ("SOLID", 1),
 
-    # 0xc8..0xcf
-    ("prtyp", 1),  ("prtym", 1),  ("prtye", 3),  ("prtyq", 2),  ("membq", 2),  ("mmb+-", 2),  ("mmblk", 1),  ("mmbuk", 1),
+    # 0XC8..0XCF
+    ("PRTYP", 1),  ("PRTYM", 1),  ("PRTYE", 3),  ("IFPRTYQ", 2),  ("IFMEMBQ", 2),  ("MMBud", 2),  ("MMBLK", 1),  ("MMBUK", 1),
 
-    # 0xd0..0xd7
-    ("line", 12),  ("linon", 1),  ("mpjpo", 1),  ("sline", 15), ("sin", 9),    ("cos", 9),    ("tlkR2", 3),  ("sldR2", 3),
+    # 0XD0..0XD7
+    ("LINE", 12),  ("LINON", 1),  ("MPJPO", 1),  ("SLINE", 15), ("SIN", 9),    ("COS", 9),    ("TLKR2", 3),  ("SLDR2", 3),
 
-    # 0xd8..0xdf
-    ("pmjmp", 2),  ("pmjmp", 0),  ("akao2", 14), ("fcfix", 1),  ("ccanm", 3),  ("animb", 0),  ("turnw", 0),  ("mppal", 10),
+    # 0XD8..0XDF
+    ("PMJUMP", 2),  ("PMJUMP2", 0),  ("AKAO2", 14), ("FCFIX", 1),  ("CCANM", 3),  ("ANIMB", 0),  ("TURNW", 0),  ("MPPAL", 10),
 
-    # 0xe0..0xe7
-    ("bgon", 3),   ("bgoff", 3),  ("bgrol", 2),  ("bgrol", 2),  ("bgclr", 2),  ("stpal", 4),  ("ldpal", 4),  ("cppal", 4),
+    # 0XE0..0XE7
+    ("BGON", 3),   ("BGOFF", 3),  ("BGROL", 2),  ("BGROL2", 2),  ("BGCLR", 2),  ("STPAL", 4),  ("LDPAL", 4),  ("CPPAL", 4),
 
-    # 0xe8..0xef
-    ("rtpal", 6),  ("adpal", 9),  ("mppal", 9),  ("stpls", 4),  ("ldpls", 4),  ("cppal", 7),  ("rtpal", 7),  ("adpal", 10),
+    # 0XE8..0XEF
+    ("RTPAL", 6),  ("ADPAL", 9),  ("MPPAL2", 9),  ("STPLS", 4),  ("LDPLS", 4),  ("CPPAL2", 7),  ("RTPAL2", 7),  ("ADPAL2", 10),
 
-    # 0xf0..0xf7
-    ("music", 1),  ("se", 4),     ("akao", 13),  ("musvt", 1),  ("musvm", 1),  ("mulck", 1),  ("bmusc", 1),  ("chmph", 3),
+    # 0XF0..0XF7
+    ("MUSIC", 1),  ("SOUND", 4),     ("AKAO", 13),  ("MUSVT", 1),  ("MUSVM", 1),  ("MULCK", 1),  ("BMUSC", 1),  ("CHMPH", 3),
 
-    # 0xf8..0xff
-    ("pmvie", 1),  ("movie", 0),  ("mvief", 2),  ("mvcam", 1),  ("fmusc", 1),  ("cmusc", 5),  ("chmst", 2),  ("gmovr", 0),
+    # 0XF8..0XFF
+    ("PMVIE", 1),  ("MOVIE", 0),  ("MVIEF", 2),  ("MVCAM", 1),  ("FMUSC", 1),  ("CMUSC", 5),  ("CHMST", 2),  ("GAMEOVER", 0),
 ]
 
 
-# Mnemonic and operand length for SPCAL sub-opcodes
+# Mnemonic and operand length for SPECIAL sub-opcodes
 specialOpcodes = {
-    0xf5: ("arrow", 1),
-    0xf6: ("pname", 4),
-    0xf7: ("gmspd", 2),
-    0xf8: ("smspd", 2),
-    0xf9: ("flmat", 0),
-    0xfa: ("flitm", 0),
-    0xfb: ("btlck", 1),
-    0xfc: ("mvlck", 1),
-    0xfd: ("spcnm", 2),
-    0xfe: ("rsglb", 0),
-    0xff: ("clitm", 0),
+    0xf5: ("ARROW", 1),
+    0xf6: ("PNAME", 4),
+    0xf7: ("GMSPD", 2),
+    0xf8: ("SMSPD", 2),
+    0xf9: ("FLMAT", 0),
+    0xfa: ("FLITM", 0),
+    0xfb: ("BTLCK", 1),
+    0xfc: ("MVLCK", 1),
+    0xfd: ("SPCNM", 2),
+    0xfe: ("RSGLB", 0),
+    0xff: ("CLITM", 0),
 }
 
 
 # Some selected opcodes (flow control and text/window-related)
 Op = _enum(
-    RET = 0x00, RETTO = 0x07, SPCAL = 0x0f, SKIP = 0x10,
-    LSKIP = 0x11, BACK = 0x12, LBACK = 0x13, IF = 0x14,
-    LIF = 0x15, IF2 = 0x16, LIF2 = 0x17, IF2U = 0x18,
-    LIF2U = 0x19, KAWAI = 0x28, WSIZW = 0x2f, KEYQ = 0x30,
-    KEYON = 0x31, KEYOFF = 0x32, WSPCL = 0x36, MES = 0x40,
+    RET = 0x00, RETTO = 0x07, SPECIAL = 0x0f, JMPF = 0x10,
+    JMPFL = 0x11, JMPB = 0x12, JMPBL = 0x13, IFUB = 0x14,
+    IFUBL = 0x15, IFSW = 0x16, IFSWL = 0x17, IFUW = 0x18,
+    IFUWL = 0x19, KAWAI = 0x28, WSIZW = 0x2f, IFKEY = 0x30,
+    IFKEYON = 0x31, IFKEYOFF = 0x32, WSPCL = 0x36, MESSAGE = 0x40,
     MPNAM = 0x43, ASK = 0x48, WSIZE = 0x50, WREST = 0x53,
-    PRTYQ = 0xcb, MEMBQ = 0xcc, GMOVR = 0xff,
+    IFPRTYQ = 0xcb, IFMEMBQ = 0xcc, GAMEOVER = 0xff,
     SPCNM = 0x0ffd,
 )
 
@@ -466,7 +466,7 @@ def instructionSize(code, offset):
     op = code[offset]
     size = opcodes[op][1] + 1
 
-    if op == Op.SPCAL:
+    if op == Op.SPECIAL:
 
         # First operand byte is sub-opcode
         subOp = code[offset + 1]
@@ -485,25 +485,25 @@ def instructionSize(code, offset):
 def targetOffset(code, offset):
     op = code[offset]
 
-    if op == Op.SKIP:
+    if op == Op.JMPF:
         return offset + code[offset + 1] + 1
-    elif op == Op.LSKIP:
+    elif op == Op.JMPFL:
         return offset + (code[offset + 1] | (code[offset + 2] << 8)) + 1
-    elif op == Op.BACK:
+    elif op == Op.JMPB:
         return offset - code[offset + 1]
-    elif op == Op.LBACK:
+    elif op == Op.JMPBL:
         return offset - (code[offset + 1] | (code[offset + 2] << 8))
-    if op == Op.IF:
+    if op == Op.IFUB:
         return offset + code[offset + 5] + 5
-    elif op == Op.LIF:
+    elif op == Op.IFUBL:
         return offset + (code[offset + 5] | (code[offset + 6] << 8)) + 5
-    elif op in (Op.IF2, Op.IF2U):
+    elif op in (Op.IFSW, Op.IFUW):
         return offset + code[offset + 7] + 7
-    elif op in (Op.LIF2, Op.LIF2U):
+    elif op in (Op.IFSWL, Op.IFUWL):
         return offset + (code[offset + 7] | (code[offset + 8] << 8)) + 7
-    elif op in (Op.KEYQ, Op.KEYON, Op.KEYOFF):
+    elif op in (Op.IFKEY, Op.IFKEYON, Op.IFKEYOFF):
         return offset + code[offset + 3] + 3
-    elif op in (Op.PRTYQ, Op.MEMBQ):
+    elif op in (Op.IFPRTYQ, Op.IFMEMBQ):
         return offset + code[offset + 2] + 2
     else:
         return None
@@ -511,16 +511,16 @@ def targetOffset(code, offset):
 
 # Return true if the instruction at the given offset halts the control flow.
 def isExit(code, offset):
-    return code[offset] in (Op.RET, Op.RETTO, Op.GMOVR)
+    return code[offset] in (Op.RET, Op.RETTO, Op.GAMEOVER)
 
 # Return true if the instruction at the given offset is an unconditional jump.
 def isJump(code, offset):
-    return code[offset] in (Op.SKIP, Op.LSKIP, Op.BACK, Op.LBACK)
+    return code[offset] in (Op.JMPF, Op.JMPFL, Op.JMPB, Op.JMPBL)
 
 # Return true if the instruction at the given offset is a conditional branch.
 def isBranch(code, offset):
-    return code[offset] in (Op.IF, Op.LIF, Op.IF2, Op.LIF2, Op.IF2U, Op.LIF2U,
-                            Op.KEYQ, Op.KEYON, Op.KEYOFF, Op.PRTYQ, Op.MEMBQ)
+    return code[offset] in (Op.IFUB, Op.IFUBL, Op.IFSW, Op.IFSWL, Op.IFUW, Op.IFUWL,
+                            Op.IFKEY, Op.IFKEYON, Op.IFKEYOFF, Op.IFPRTYQ, Op.IFMEMBQ)
 
 
 # Build and return the control flow graph, a dictionary mapping addresses to
@@ -628,14 +628,14 @@ def findPaths(graph, entryAddress, path = []):
 
 # Remove instructions from the blocks of a code flow graph, only keeping those
 # in the specified list. The passed-in graph is modified by this function.
-# SPCAL 2-byte opcodes which should be kept can be specified as 0x0fxx.
+# SPECIAL 2-byte opcodes which should be kept can be specified as 0x0fxx.
 def filterInstructions(graph, code, keep):
     for block in list(graph.values()):
         newInstructions = []
 
         for offset in block.instructions:
             op = code[offset]
-            if op == Op.SPCAL:
+            if op == Op.SPECIAL:
                 op = (op << 8) | code[offset + 1]
 
             if op in keep:
@@ -759,7 +759,7 @@ def disassemble(code, baseAddress = 0, labels = []):
 
         mnemonic, size = opcodes[op]
 
-        if op == Op.SPCAL:  # first operand byte is sub-opcode
+        if op == Op.SPECIAL:  # first operand byte is sub-opcode
             subOp = code[offset]
             offset += 1
             mnemonic, size = specialOpcodes[subOp]
